@@ -1,0 +1,1 @@
+// placeholder for components/wifi_manager/include/wifi_manager.h

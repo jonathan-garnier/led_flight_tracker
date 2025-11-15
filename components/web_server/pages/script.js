@@ -1,0 +1,1 @@
+// placeholder for components/web_server/pages/script.js

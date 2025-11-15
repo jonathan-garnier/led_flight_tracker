@@ -1,0 +1,21 @@
+idf_component_register(
+    SRCS
+        "led_matrix.cpp"
+        "screen_manager.cpp"
+        "screens/base_screen.cpp"
+        "screens/info_screen.cpp"
+        "screens/spectrum_screen.cpp"
+        "screens/fireworks_screen.cpp"
+        "screens/clock_screen.cpp"
+        "screens/info_screen.cpp"
+    INCLUDE_DIRS
+        "include"
+        "screens"
+    REQUIRES
+        espressif__arduino-esp32
+        ESP32-HUB75-MatrixPanel-DMA
+        Adafruit-GFX-Library
+        Adafruit_BusIO
+        sensors
+        utils
+)
