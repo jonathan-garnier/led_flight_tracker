@@ -1,0 +1,12 @@
+# ESP-IDF
+build/
+sdkconfig.old
+sdkconfig.ci
+managed_components/
+.espressif/
+.cache/
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+.vscode/
+.idea/
