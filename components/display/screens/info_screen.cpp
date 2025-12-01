@@ -3,6 +3,7 @@
 #include <esp_system.h>
 #include <stdio.h>
 #include <Fonts/TomThumb.h>
+#include "wifi_manager.h"
 
 void InfoScreen::render(LEDMatrix& matrix)
 {
@@ -38,8 +39,33 @@ void InfoScreen::render(LEDMatrix& matrix)
     d->setTextColor(green);
     d->print(heapStr);
 
-    // ---- WIFI ----
+    // ---- WIFI STATUS ----
+    WiFiManager& wm = WiFiManager::instance();
+    WiFiState st = wm.getState();
+
     d->setCursor(0, 30);
-    d->setTextColor(red);
-    d->print("WiFi: Not Conn");
+
+    if (st == WiFiState::AP_MODE) {
+        d->setTextColor(cyan);
+        d->print("WiFi: AP Mode");
+    }
+    else if (st == WiFiState::CONNECTING) {
+        d->setTextColor(cyan);
+        d->print("WiFi: Connecting");
+    }
+    else if (st == WiFiState::CONNECTED) {
+        d->setTextColor(green);
+        d->print("WiFi: OK ");
+
+        // show IP next to it
+        d->print(wm.getIPAddress());
+    }
+    else if (st == WiFiState::FAILED) {
+        d->setTextColor(red);
+        d->print("WiFi: Failed");
+    }
+    else { // DISCONNECTED
+        d->setTextColor(red);
+        d->print("WiFi: NoConn");
+    }
 }

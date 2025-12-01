@@ -11,6 +11,7 @@
 #include "fireworks_screen.h"
 #include "clock_screen.h"
 #include "info_screen.h"
+#include "wifi_manager.h"
 
 #define BUTTON_PIN GPIO_NUM_38   // your button pin
 
@@ -20,6 +21,7 @@ static const TickType_t FRAME_DELAY = pdMS_TO_TICKS(1000 / FRAME_RATE);
 extern "C" void app_main(void)
 {
     initArduino();
+    WiFiManager::instance().begin();
 
     LEDMatrix matrix(64, 32, 1);
     matrix.begin();

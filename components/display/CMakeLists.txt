@@ -18,4 +18,5 @@ idf_component_register(
         Adafruit_BusIO
         sensors
         utils
+        wifi_manager
 )
