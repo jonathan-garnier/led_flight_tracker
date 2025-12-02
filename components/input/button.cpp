@@ -35,7 +35,18 @@ void Button::update()
 
         // Detect rising edge = press
         if (_currentState && !_lastState)
+        {
             _pressed = true;
+            _pressStartTime = now;
+            _longPressTriggered = false;
+        }
+
+        // Detect falling edge = release
+        if (!_currentState && _lastState)
+        {
+            _longPressed = false;
+            _longPressTriggered = false;
+        }
 
         _lastState = _currentState;
     }
@@ -47,6 +58,26 @@ bool Button::wasPressed()
     {
         _pressed = false;   // consume press
         return true;
+    }
+    return false;
+}
+
+bool Button::isHeld()
+{
+    return _currentState;
+}
+
+bool Button::wasLongPressed(uint32_t durationMs)
+{
+    if (_currentState && !_longPressTriggered)
+    {
+        uint32_t now = esp_timer_get_time() / 1000; // ms
+        if ((now - _pressStartTime) >= durationMs)
+        {
+            _longPressTriggered = true;
+            _pressed = false; // Consume short press if long press triggers
+            return true;
+        }
     }
     return false;
 }

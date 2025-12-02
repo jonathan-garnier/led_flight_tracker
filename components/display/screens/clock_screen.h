@@ -9,16 +9,16 @@ public:
     void render(LEDMatrix& matrix) override;
 
 private:
-    char timeStr[6] = "00:00";  // HH:MM
+    char hourStr[4] = "12";      // Hour part (up to 2 digits + null)
+    char minStr[4] = "00";       // Minute part (2 digits + null)
+    char ampmStr[4] = "AM";      // AM/PM indicator (2 chars + null)
     float accumulator = 0;
+    bool colonVisible = true;    // For blinking colon effect
+    float colorHue = 0.0f;       // For rainbow color effect
 
     enum State {
         NO_WIFI,
         SYNCING,
         READY
     } state = NO_WIFI;
-
-    // Placeholder fake time until WiFi exists
-    int fakeHours = 12;
-    int fakeMinutes = 0;
 };

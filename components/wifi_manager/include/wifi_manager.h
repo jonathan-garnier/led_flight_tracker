@@ -27,6 +27,7 @@ public:
     bool hasSavedCredentials();
     void saveCredentials(const char* ssid, const char* pwd);
     void loadCredentials();
+    void clearCredentials();  // Factory reset - clear WiFi credentials
 
     // Setters (MUST exist for event handler)
     void setState(WiFiState s);

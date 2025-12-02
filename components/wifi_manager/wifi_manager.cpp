@@ -74,6 +74,25 @@ void WiFiManager::saveCredentials(const char* s, const char* p)
 }
 
 // ---------------------------------------------------
+// Clear credentials (factory reset)
+// ---------------------------------------------------
+void WiFiManager::clearCredentials()
+{
+    nvs_handle_t nvs;
+    if (nvs_open("wifi", NVS_READWRITE, &nvs) == ESP_OK) {
+        nvs_erase_key(nvs, "ssid");
+        nvs_erase_key(nvs, "pwd");
+        nvs_commit(nvs);
+        nvs_close(nvs);
+    }
+
+    ssid[0] = 0;
+    pwd[0] = 0;
+
+    ESP_LOGI(TAG, "WiFi credentials cleared");
+}
+
+// ---------------------------------------------------
 // Wi-Fi Event Handler
 // ---------------------------------------------------
 static void wifi_event_handler(

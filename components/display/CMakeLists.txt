@@ -7,6 +7,7 @@ idf_component_register(
         "screens/spectrum_screen.cpp"
         "screens/fireworks_screen.cpp"
         "screens/clock_screen.cpp"
+        "screens/flight_screen.cpp"
         "screens/info_screen.cpp"
     INCLUDE_DIRS
         "include"
@@ -19,4 +20,6 @@ idf_component_register(
         sensors
         utils
         wifi_manager
+        app_config
+        network
 )

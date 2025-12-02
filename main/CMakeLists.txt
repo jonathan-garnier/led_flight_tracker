@@ -7,6 +7,9 @@ idf_component_register(
         display
         input
         wifi_manager
+        app_config
+        web_server
+        network
         sensors
         utils
         espressif__arduino-esp32
