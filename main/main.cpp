@@ -153,12 +153,12 @@ extern "C" void app_main(void)
 
         // Periodic flight data fetch (every 5 minutes when WiFi connected)
         if (currentWiFiState == WiFiState::CONNECTED) {
-            LocationConfig loc = AppConfig::instance().getLocation();
-            if (loc.valid && FlightAPI::instance().canFetch()) {
-                printf("Fetching flight data...\n");
-                FlightConfig fc = AppConfig::instance().getFlightConfig();
-                if (FlightAPI::instance().fetchFlights(loc.latitude, loc.longitude, fc.bbox_size)) {
-                    printf("Flight data updated: %zu flights\n", FlightAPI::instance().getFlightCount());
+            if (FlightAPI::instance().canFetch()) {
+                LocationConfig loc = AppConfig::instance().getLocation();
+                if (loc.valid) {
+                    FlightConfig fc = AppConfig::instance().getFlightConfig();
+                    FlightAPI::instance().fetchFlights(loc.latitude, loc.longitude, fc.bbox_size);
+                    printf("Flight fetch complete: %zu flights found\n", FlightAPI::instance().getFlightCount());
                 }
             }
         }

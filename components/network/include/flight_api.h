@@ -51,7 +51,7 @@ private:
     FlightAPI& operator=(const FlightAPI&) = delete;
 
     std::vector<Flight> flights;
-    int64_t lastFetchTime = 0;      // Time of last fetch (milliseconds since boot)
+    int64_t lastFetchTime = -999999999;  // Initialize to far past to allow first fetch immediately
     const int MIN_FETCH_INTERVAL = 300000;  // 5 minutes in milliseconds (300 seconds)
     bool initialized = false;
 };

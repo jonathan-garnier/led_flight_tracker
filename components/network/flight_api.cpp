@@ -14,22 +14,28 @@ static const char* TAG = "FlightAPI";
 static const char* OPENSKY_API_URL = "https://opensky-network.org/api/states/all";
 
 // Buffer for HTTP response
-#define MAX_HTTP_RESPONSE_SIZE (64 * 1024)  // 64KB should be enough for most responses
+// OpenSky API returns ~100 bytes per flight, we expect max ~100 flights, plus JSON overhead
+#define MAX_HTTP_RESPONSE_SIZE (32 * 1024)  // 32KB buffer (was 64KB, reducing to save heap)
 static char* http_response_buffer = nullptr;
 static size_t http_response_len = 0;
 
 // HTTP event handler
 static esp_err_t http_event_handler(esp_http_client_event_t *evt) {
     switch(evt->event_id) {
-        case HTTP_EVENT_ON_DATA:
-            if (!esp_http_client_is_chunked_response(evt->client)) {
-                // Append data to buffer
-                if (http_response_len + evt->data_len < MAX_HTTP_RESPONSE_SIZE) {
-                    memcpy(http_response_buffer + http_response_len, evt->data, evt->data_len);
-                    http_response_len += evt->data_len;
-                }
+        case HTTP_EVENT_ON_DATA: {
+            if (http_response_buffer == nullptr) {
+                ESP_LOGE(TAG, "ERROR: http_response_buffer is NULL!");
+                break;
+            }
+            // Append data to buffer (handle both chunked and non-chunked responses)
+            if (http_response_len + evt->data_len < MAX_HTTP_RESPONSE_SIZE) {
+                memcpy(http_response_buffer + http_response_len, evt->data, evt->data_len);
+                http_response_len += evt->data_len;
+            } else {
+                ESP_LOGE(TAG, "Buffer overflow! Would exceed %d bytes", MAX_HTTP_RESPONSE_SIZE);
             }
             break;
+        }
         default:
             break;
     }
@@ -100,6 +106,9 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
     float lon_min = lon - radius;
     float lon_max = lon + radius;
 
+    ESP_LOGI(TAG, "Fetching flights - Center: (%.4f, %.4f), Radius: %.4f", lat, lon, radius);
+    ESP_LOGI(TAG, "Bounding box - Lat: [%.4f, %.4f], Lon: [%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
+
     // Build URL with bounding box parameters
     char url[256];
     snprintf(url, sizeof(url),
@@ -149,10 +158,18 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
     // Null-terminate response
     http_response_buffer[http_response_len] = '\0';
 
+    ESP_LOGD(TAG, "HTTP Response length: %d bytes", http_response_len);
+
     // Parse JSON response
     cJSON *root = cJSON_Parse(http_response_buffer);
     if (root == nullptr) {
         ESP_LOGE(TAG, "Failed to parse JSON response");
+        ESP_LOGE(TAG, "Buffer is null-terminated: %d", http_response_buffer[http_response_len] == '\0');
+        ESP_LOGE(TAG, "First 200 chars: %.200s", http_response_buffer);
+        // Try to identify what we got
+        if (http_response_len < 100) {
+            ESP_LOGE(TAG, "Full response: %s", http_response_buffer);
+        }
         return false;
     }
 
@@ -161,11 +178,30 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
 
     // Get the "states" array
     cJSON *states = cJSON_GetObjectItem(root, "states");
-    if (states == nullptr || !cJSON_IsArray(states)) {
-        ESP_LOGW(TAG, "No flights found in response");
+    if (states == nullptr) {
+        ESP_LOGW(TAG, "States field is null in response");
+        char *response_str = cJSON_Print(root);
+        if (response_str) {
+            ESP_LOGI(TAG, "Full API response: %s", response_str);
+            free(response_str);
+        }
         cJSON_Delete(root);
-        return true;  // Not an error, just no flights
+        return true;  // Not an error, just no flights in the area
     }
+
+    if (!cJSON_IsArray(states)) {
+        ESP_LOGE(TAG, "States is not an array!");
+        char *response_str = cJSON_Print(root);
+        if (response_str) {
+            ESP_LOGI(TAG, "Full API response: %s", response_str);
+            free(response_str);
+        }
+        cJSON_Delete(root);
+        return false;
+    }
+
+    int num_states = cJSON_GetArraySize(states);
+    ESP_LOGI(TAG, "States array size: %d flights found", num_states);
 
     int count = 0;
     cJSON *state = nullptr;
