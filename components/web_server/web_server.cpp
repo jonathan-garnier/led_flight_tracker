@@ -8,69 +8,102 @@
 static const char* TAG = "WebServer";
 
 // HTML for the configuration form
-static const char* html_page = R"(
-<!DOCTYPE html>
-<html>
-<head>
-  <title>LED Flight Tracker Setup</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: Arial; margin: 20px; background: #f0f0f0; }
-    .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    h1 { color: #333; margin-top: 0; }
-    input, select { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-    button { background: #4CAF50; color: white; padding: 12px; border: none; width: 100%; cursor: pointer; border-radius: 4px; font-size: 16px; }
-    button:hover { background: #45a049; }
-    .info { background: #e7f3fe; padding: 10px; margin: 10px 0; border-left: 4px solid #2196F3; border-radius: 4px; }
-    label { display: block; margin-top: 12px; font-weight: bold; color: #555; }
-    .note { font-size: 12px; color: #666; margin-top: 20px; line-height: 1.5; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>LED Flight Tracker Setup</h1>
-    <div class="info">
-      <b>Network:</b> LED-Flight-Tracker<br>
-      <b>IP Address:</b> 192.168.4.1
-    </div>
-
-    <form method="POST" action="/configure">
-      <h2>WiFi Settings</h2>
-      <label>Network Name (SSID):</label>
-      <input type="text" name="ssid" required maxlength="31" placeholder="Your WiFi network name">
-
-      <label>Password:</label>
-      <input type="password" name="password" required maxlength="63" placeholder="Your WiFi password">
-
-      <h2>Location Settings</h2>
-      <label>Latitude (decimal degrees):</label>
-      <input type="number" step="0.000001" name="latitude" placeholder="e.g., -33.8688" required>
-
-      <label>Longitude (decimal degrees):</label>
-      <input type="number" step="0.000001" name="longitude" placeholder="e.g., 151.2093" required>
-
-      <h2>Time Settings</h2>
-      <label>Timezone:</label>
-      <select name="timezone">
-        <option value="AEST-10AEDT,M10.1.0,M4.1.0/3">Australia/Sydney (AEDT)</option>
-        <option value="UTC0">UTC</option>
-        <option value="PST8PDT,M3.2.0,M11.1.0">US/Pacific</option>
-        <option value="EST5EDT,M3.2.0,M11.1.0">US/Eastern</option>
-        <option value="CET-1CEST,M3.5.0,M10.5.0/3">Europe/Central</option>
-        <option value="JST-9">Asia/Tokyo</option>
-      </select>
-
-      <button type="submit">Save & Connect</button>
-    </form>
-
-    <p class="note">
-      After saving, the device will connect to your WiFi network.<br>
-      Find your device's new IP address on your router or check the Info screen.
-    </p>
-  </div>
-</body>
-</html>
-)";
+static const char* html_page = "<!DOCTYPE html>\n"
+"<html>\n"
+"<head>\n"
+"  <title>LED Flight Tracker Setup</title>\n"
+"  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+"  <style>\n"
+"    body { font-family: Arial; margin: 20px; background: #f0f0f0; }\n"
+"    .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n"
+"    h1 { color: #333; margin-top: 0; }\n"
+"    input, select { width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }\n"
+"    button { background: #4CAF50; color: white; padding: 12px; border: none; width: 100%; cursor: pointer; border-radius: 4px; font-size: 16px; }\n"
+"    button:hover { background: #45a049; }\n"
+"    .toggle-btn { background: #2196F3; padding: 6px 12px; font-size: 12px; width: auto; display: inline-block; margin-left: 8px; margin-top: 8px; }\n"
+"    .toggle-btn:hover { background: #0b7dda; }\n"
+"    .info { background: #e7f3fe; padding: 10px; margin: 10px 0; border-left: 4px solid #2196F3; border-radius: 4px; }\n"
+"    label { display: block; margin-top: 12px; font-weight: bold; color: #555; }\n"
+"    .label-row { display: flex; justify-content: space-between; align-items: center; }\n"
+"    .note { font-size: 12px; color: #666; margin-top: 20px; line-height: 1.5; }\n"
+"  </style>\n"
+"  <script>\n"
+"    function togglePasswordVisibility() {\n"
+"      const field = document.getElementById('sky_pass');\n"
+"      const btn = document.getElementById('toggle_btn');\n"
+"      if (field.type === 'password') {\n"
+"        field.type = 'text';\n"
+"        btn.textContent = 'Hide';\n"
+"      } else {\n"
+"        field.type = 'password';\n"
+"        btn.textContent = 'Show';\n"
+"      }\n"
+"    }\n"
+"  </script>\n"
+"</head>\n"
+"<body>\n"
+"  <div class=\"container\">\n"
+"    <h1>LED Flight Tracker Setup</h1>\n"
+"    <div class=\"info\">\n"
+"      <b>Network:</b> LED-Flight-Tracker<br>\n"
+"      <b>IP Address:</b> 192.168.4.1\n"
+"    </div>\n"
+"\n"
+"    <form method=\"POST\" action=\"/configure\">\n"
+"      <h2>WiFi Settings</h2>\n"
+"      <label>Network Name (SSID):</label>\n"
+"      <input type=\"text\" name=\"ssid\" required maxlength=\"31\" placeholder=\"Your WiFi network name\">\n"
+"\n"
+"      <label>Password:</label>\n"
+"      <input type=\"password\" name=\"password\" required maxlength=\"63\" placeholder=\"Your WiFi password\">\n"
+"\n"
+"      <h2>Location Settings</h2>\n"
+"      <label>Latitude (decimal degrees):</label>\n"
+"      <input type=\"number\" step=\"0.000001\" name=\"latitude\" placeholder=\"e.g., -33.8688\" required>\n"
+"\n"
+"      <label>Longitude (decimal degrees):</label>\n"
+"      <input type=\"number\" step=\"0.000001\" name=\"longitude\" placeholder=\"e.g., 151.2093\" required>\n"
+"\n"
+"      <h2>Time Settings</h2>\n"
+"      <label>Timezone:</label>\n"
+"      <select name=\"timezone\">\n"
+"        <option value=\"AEST-10AEDT,M10.1.0,M4.1.0/3\">Australia/Sydney (AEDT)</option>\n"
+"        <option value=\"UTC0\">UTC</option>\n"
+"        <option value=\"PST8PDT,M3.2.0,M11.1.0\">US/Pacific</option>\n"
+"        <option value=\"EST5EDT,M3.2.0,M11.1.0\">US/Eastern</option>\n"
+"        <option value=\"CET-1CEST,M3.5.0,M10.5.0/3\">Europe/Central</option>\n"
+"        <option value=\"JST-9\">Asia/Tokyo</option>\n"
+"      </select>\n"
+"\n"
+"      <h2>OpenSky Network (Optional)</h2>\n"
+"      <p style=\"color: #666; font-size: 14px;\">\n"
+"        To enable departure/arrival airport information, create an API credential in your OpenSky Network account:<br>\n"
+"        1. Log in at <b>opensky-network.org</b><br>\n"
+"        2. Go to Account Settings and API Credentials<br>\n"
+"        3. Create a new credential - you will get a username and password<br>\n"
+"        4. Enter those credentials below - not your account username and password\n"
+"      </p>\n"
+"      <label>OpenSky API Username:</label>\n"
+"      <input type=\"text\" name=\"sky_user\" maxlength=\"63\" placeholder=\"Your API credential username (optional)\">\n"
+"\n"
+"      <div class=\"label-row\">\n"
+"        <label>OpenSky API Password:</label>\n"
+"        <button type=\"button\" id=\"toggle_btn\" class=\"toggle-btn\" onclick=\"togglePasswordVisibility()\">Show</button>\n"
+"      </div>\n"
+"      <input type=\"password\" id=\"sky_pass\" name=\"sky_pass\" maxlength=\"63\" placeholder=\"Your API credential password (optional)\">\n"
+"\n"
+"      <button type=\"submit\">Save &amp; Connect</button>\n"
+"    </form>\n"
+"\n"
+"    <p class=\"note\">\n"
+"      After saving, the device will connect to your WiFi network.<br>\n"
+"      Find your device IP address on your router or check the Info screen.<br>\n"
+"      <br>\n"
+"      <b>Note:</b> OpenSky Network API credentials are optional. Without them, the tracker will display flight callsigns and positions. With credentials, you will also see departure and arrival airport codes. Use your API credential username and password, not your account login.\n"
+"    </p>\n"
+"  </div>\n"
+"</body>\n"
+"</html>\n";
 
 // Success page
 static const char* success_page = R"(
@@ -188,6 +221,8 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
     char lat_str[32] = {0};
     char lon_str[32] = {0};
     char timezone[64] = {0};
+    char sky_user[64] = {0};
+    char sky_pass[64] = {0};
 
     if (!parse_form_value(content, "ssid", ssid, sizeof(ssid)) ||
         !parse_form_value(content, "password", password, sizeof(password)) ||
@@ -198,6 +233,10 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing required fields");
         return ESP_FAIL;
     }
+
+    // OpenSky credentials are optional
+    parse_form_value(content, "sky_user", sky_user, sizeof(sky_user));
+    parse_form_value(content, "sky_pass", sky_pass, sizeof(sky_pass));
 
     // Validate and convert latitude/longitude
     float lat = atof(lat_str);
@@ -223,11 +262,19 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
     ESP_LOGI(TAG, "  SSID: %s", ssid);
     ESP_LOGI(TAG, "  Location: %.4f, %.4f", lat, lon);
     ESP_LOGI(TAG, "  Timezone: %s", timezone);
+    if (strlen(sky_user) > 0) {
+        ESP_LOGI(TAG, "  OpenSky user: %s", sky_user);
+    }
 
     // Save to AppConfig
     AppConfig& config = AppConfig::instance();
     config.setLocation(lat, lon);
     config.setTimezone(timezone);
+
+    // Save OpenSky credentials if provided
+    if (strlen(sky_user) > 0 && strlen(sky_pass) > 0) {
+        config.setOpenSkyAuth(sky_user, sky_pass);
+    }
 
     // Save WiFi credentials
     WiFiManager& wm = WiFiManager::instance();
@@ -242,6 +289,35 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
     // Set flag for WiFi reconnection (handled in main loop)
     WebServer::instance().reconnect_pending = true;
 
+    return ESP_OK;
+}
+
+// Debug endpoint to show saved credentials
+esp_err_t WebServer::handleDebug(httpd_req_t* req) {
+    OpenSkyAuthConfig auth = AppConfig::instance().getOpenSkyAuth();
+
+    // Create a response showing the saved credentials (for debugging)
+    const char* response_start = "<!DOCTYPE html>\n<html><head><title>Debug Info</title></head><body>\n"
+                                  "<h2>Saved Configuration</h2>\n"
+                                  "<p><b>OpenSky API Username:</b> ";
+    const char* response_end = "</p></body></html>";
+
+    char response[512];
+    snprintf(response, sizeof(response),
+             "%s%s</p>\n"
+             "<p><b>Password Length:</b> %zu characters</p>\n"
+             "<p><b>Password (first 5 chars):</b> %.5s***</p>\n"
+             "<p><b>Authenticated:</b> %s</p>\n"
+             "%s",
+             response_start,
+             auth.username,
+             strlen(auth.password),
+             auth.password,
+             auth.authenticated ? "Yes" : "No",
+             response_end);
+
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
 }
 
@@ -287,7 +363,16 @@ void WebServer::begin() {
         };
         httpd_register_uri_handler(server, &configure_uri);
 
+        httpd_uri_t debug_uri = {
+            .uri = "/debug",
+            .method = HTTP_GET,
+            .handler = handleDebug,
+            .user_ctx = nullptr
+        };
+        httpd_register_uri_handler(server, &debug_uri);
+
         ESP_LOGI(TAG, "HTTP server started successfully");
+        ESP_LOGI(TAG, "Debug info available at http://192.168.4.1/debug");
     } else {
         ESP_LOGE(TAG, "Failed to start HTTP server");
         server = nullptr;

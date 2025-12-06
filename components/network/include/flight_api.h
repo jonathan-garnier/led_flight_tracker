@@ -6,20 +6,27 @@
 
 // Structure to hold flight data
 struct Flight {
-    char callsign[16];      // Aircraft callsign
-    float latitude;         // Current latitude
-    float longitude;        // Current longitude
-    float altitude;         // Altitude in meters
-    float velocity;         // Ground speed in m/s
-    float heading;          // Track angle in degrees (0-360)
-    int64_t lastContact;    // Unix timestamp of last position update
-    bool valid;             // Whether this flight data is valid
+    char callsign[16];           // Aircraft callsign
+    float latitude;              // Current latitude
+    float longitude;             // Current longitude
+    float altitude;              // Altitude in meters
+    float velocity;              // Ground speed in m/s
+    float heading;               // Track angle in degrees (0-360)
+    int64_t lastContact;         // Unix timestamp of last position update
+    char departureAirport[8];    // Departure airport ICAO code (e.g., "KSFO")
+    char arrivalAirport[8];      // Arrival airport ICAO code (e.g., "KJFK")
+    bool valid;                  // Whether this flight data is valid
 
     Flight() : latitude(0), longitude(0), altitude(0), velocity(0),
                heading(0), lastContact(0), valid(false) {
         callsign[0] = '\0';
+        departureAirport[0] = '\0';
+        arrivalAirport[0] = '\0';
     }
 };
+
+// Utility function for base64 encoding (used for HTTP Basic Auth)
+void base64_encode(const uint8_t* input, size_t input_len, char* output);
 
 // FlightAPI singleton class for fetching flight data from OpenSky Network
 class FlightAPI {

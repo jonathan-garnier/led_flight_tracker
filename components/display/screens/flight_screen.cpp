@@ -120,34 +120,80 @@ void FlightScreen::render(LEDMatrix& matrix)
 
         const Flight& flight = flights[currentFlightIndex];
 
-        // Draw flight callsign (large, centered)
-        d->setTextSize(2);
-        int16_t x1, y1;
-        uint16_t w, h;
-        d->getTextBounds(flight.callsign, 0, 0, &x1, &y1, &w, &h);
-        int xPos = (64 - w) / 2;
-        d->setCursor(xPos, 8);
-        d->setTextColor(matrix.color565(0, 255, 0));
-        d->print(flight.callsign);
+        // Check if we have airport codes
+        bool hasAirports = (flight.departureAirport[0] != '\0' && flight.arrivalAirport[0] != '\0');
 
-        // Draw flight info (smaller text)
-        d->setTextSize(1);
+        if (hasAirports) {
+            // Display format with airport codes: FROM → TO (large, at top)
+            d->setTextSize(1);
 
-        // Altitude in feet
-        int altFeet = (int)(flight.altitude * 3.28084f);  // Convert meters to feet
-        char altStr[16];
-        snprintf(altStr, sizeof(altStr), "ALT: %dft", altFeet);
-        d->setCursor(2, 20);
-        d->setTextColor(matrix.color565(100, 150, 255));
-        d->print(altStr);
+            // Display departure airport
+            d->setCursor(2, 8);
+            d->setTextColor(matrix.color565(0, 255, 0));
+            d->print(flight.departureAirport);
 
-        // Speed in knots
-        int speedKnots = (int)(flight.velocity * 1.94384f);  // Convert m/s to knots
-        char speedStr[16];
-        snprintf(speedStr, sizeof(speedStr), "SPD: %dkt", speedKnots);
-        d->setCursor(2, 28);
-        d->setTextColor(matrix.color565(255, 200, 0));
-        d->print(speedStr);
+            // Display arrow
+            d->setCursor(26, 8);
+            d->setTextColor(matrix.color565(100, 200, 100));
+            d->print("=>");
+
+            // Display arrival airport
+            d->setCursor(38, 8);
+            d->setTextColor(matrix.color565(0, 255, 200));
+            d->print(flight.arrivalAirport);
+
+            // Display flight callsign (line 2)
+            d->setCursor(2, 16);
+            d->setTextColor(matrix.color565(255, 255, 0));
+            d->print(flight.callsign);
+
+            // Altitude in feet (line 3)
+            int altFeet = (int)(flight.altitude * 3.28084f);  // Convert meters to feet
+            char altStr[16];
+            snprintf(altStr, sizeof(altStr), "ALT:%dft", altFeet);
+            d->setCursor(2, 24);
+            d->setTextColor(matrix.color565(100, 150, 255));
+            d->print(altStr);
+
+            // Speed in knots (line 3 right side)
+            int speedKnots = (int)(flight.velocity * 1.94384f);  // Convert m/s to knots
+            char speedStr[16];
+            snprintf(speedStr, sizeof(speedStr), "%dkt", speedKnots);
+            d->setCursor(38, 24);
+            d->setTextColor(matrix.color565(255, 200, 0));
+            d->print(speedStr);
+
+        } else {
+            // Display format without airport codes (fallback)
+            // Draw flight callsign (large, centered)
+            d->setTextSize(2);
+            int16_t x1, y1;
+            uint16_t w, h;
+            d->getTextBounds(flight.callsign, 0, 0, &x1, &y1, &w, &h);
+            int xPos = (64 - w) / 2;
+            d->setCursor(xPos, 8);
+            d->setTextColor(matrix.color565(0, 255, 0));
+            d->print(flight.callsign);
+
+            // Draw flight info (smaller text)
+            d->setTextSize(1);
+
+            // Altitude in feet
+            int altFeet = (int)(flight.altitude * 3.28084f);  // Convert meters to feet
+            char altStr[16];
+            snprintf(altStr, sizeof(altStr), "ALT: %dft", altFeet);
+            d->setCursor(2, 20);
+            d->setTextColor(matrix.color565(100, 150, 255));
+            d->print(altStr);
+
+            // Speed in knots
+            int speedKnots = (int)(flight.velocity * 1.94384f);  // Convert m/s to knots
+            char speedStr[16];
+            snprintf(speedStr, sizeof(speedStr), "SPD: %dkt", speedKnots);
+            d->setCursor(2, 28);
+            d->setTextColor(matrix.color565(255, 200, 0));
+            d->print(speedStr);
+        }
 
         // Flight count indicator (top right corner)
         char countStr[16];

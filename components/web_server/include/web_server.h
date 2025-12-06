@@ -22,4 +22,5 @@ private:
     // HTTP handlers
     static esp_err_t handleRoot(httpd_req_t* req);
     static esp_err_t handleConfigure(httpd_req_t* req);
+    static esp_err_t handleDebug(httpd_req_t* req);
 };

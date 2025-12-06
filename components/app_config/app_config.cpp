@@ -88,6 +88,16 @@ void AppConfig::loadFromNVS() {
         ESP_LOGI(TAG, "Loaded brightness from NVS");
     }
 
+    // Load OpenSky authentication
+    size_t username_len = sizeof(openSkyAuth.username);
+    size_t password_len = sizeof(openSkyAuth.password);
+    if (nvs_get_str(handle, "sky_user", openSkyAuth.username, &username_len) == ESP_OK &&
+        nvs_get_str(handle, "sky_pass", openSkyAuth.password, &password_len) == ESP_OK &&
+        strlen(openSkyAuth.username) > 0) {
+        openSkyAuth.authenticated = true;
+        ESP_LOGI(TAG, "Loaded OpenSky authentication from NVS");
+    }
+
     nvs_close(handle);
 }
 
@@ -254,6 +264,63 @@ void AppConfig::saveBrightnessToNVS() {
     nvs_close(handle);
 
     ESP_LOGI(TAG, "Brightness saved to NVS");
+}
+
+// ---------------------------------------------------
+// OpenSky Authentication Methods
+// ---------------------------------------------------
+OpenSkyAuthConfig AppConfig::getOpenSkyAuth() {
+    return openSkyAuth;
+}
+
+bool AppConfig::hasOpenSkyAuth() {
+    return openSkyAuth.authenticated;
+}
+
+void AppConfig::setOpenSkyAuth(const char* username, const char* password) {
+    if (username == nullptr || password == nullptr) {
+        ESP_LOGE(TAG, "Username or password is null");
+        return;
+    }
+
+    if (strlen(username) == 0 || strlen(password) == 0) {
+        ESP_LOGE(TAG, "Username or password is empty");
+        return;
+    }
+
+    if (strlen(username) >= sizeof(openSkyAuth.username) ||
+        strlen(password) >= sizeof(openSkyAuth.password)) {
+        ESP_LOGE(TAG, "Username or password too long");
+        return;
+    }
+
+    strncpy(openSkyAuth.username, username, sizeof(openSkyAuth.username) - 1);
+    openSkyAuth.username[sizeof(openSkyAuth.username) - 1] = '\0';
+
+    strncpy(openSkyAuth.password, password, sizeof(openSkyAuth.password) - 1);
+    openSkyAuth.password[sizeof(openSkyAuth.password) - 1] = '\0';
+
+    openSkyAuth.authenticated = true;
+    saveOpenSkyAuthToNVS();
+
+    ESP_LOGI(TAG, "OpenSky authentication set for user: %s", username);
+}
+
+void AppConfig::saveOpenSkyAuthToNVS() {
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("app_config", NVS_READWRITE, &handle);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS for writing OpenSky auth");
+        return;
+    }
+
+    nvs_set_str(handle, "sky_user", openSkyAuth.username);
+    nvs_set_str(handle, "sky_pass", openSkyAuth.password);
+    nvs_commit(handle);
+    nvs_close(handle);
+
+    ESP_LOGI(TAG, "OpenSky authentication saved to NVS");
 }
 
 // ---------------------------------------------------

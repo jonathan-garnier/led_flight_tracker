@@ -18,6 +18,12 @@ struct FlightConfig {
     float bbox_size = 0.5f;          // degrees (~55km radius)
 };
 
+struct OpenSkyAuthConfig {
+    char username[64] = "";
+    char password[64] = "";
+    bool authenticated = false;
+};
+
 class AppConfig {
 public:
     static AppConfig& instance();
@@ -39,6 +45,11 @@ public:
     void setFlightUpdateInterval(uint32_t seconds);
     void setBBoxSize(float degrees);
 
+    // OpenSky Authentication
+    OpenSkyAuthConfig getOpenSkyAuth();
+    void setOpenSkyAuth(const char* username, const char* password);
+    bool hasOpenSkyAuth();
+
     // Display
     uint8_t getBrightness();
     void setBrightness(uint8_t value);
@@ -53,9 +64,11 @@ private:
     void saveTimezoneToNVS();
     void saveFlightConfigToNVS();
     void saveBrightnessToNVS();
+    void saveOpenSkyAuthToNVS();
 
     LocationConfig location;
     TimeConfig timeConfig;
     FlightConfig flightConfig;
+    OpenSkyAuthConfig openSkyAuth;
     uint8_t brightness = 128;
 };
