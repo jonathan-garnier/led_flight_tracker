@@ -11,7 +11,8 @@
       "Bash(python3:*)",
       "Bash(pip install:*)",
       "Bash(python -m pip install:*)",
-      "Bash(python test_opensky_api.py:*)"
+      "Bash(python test_opensky_api.py:*)",
+      "Bash(python -m esptool:*)"
     ],
     "deny": [],
     "ask": []

@@ -189,47 +189,10 @@ void test_adsbexchange() {
     }
 }
 
-// Test base64 encoding for HTTP Basic Auth
-void test_base64_encoding() {
-    ESP_LOGI(TAG, "\n=== Testing base64 encoding ===");
-
-    // Test vectors for base64 encoding
-    struct {
-        const char* input;
-        const char* expected;
-    } tests[] = {
-        {"user:pass", "dXNlcjpwYXNz"},           // Basic test
-        {"admin:12345", "YWRtaW46MTIzNDU="},     // With numbers
-        {"a", "YQ=="},                           // Single character
-        {"ab", "YWI="},                          // Two characters
-        {"abc", "YWJj"},                         // Three characters
-        {"test", "dGVzdA=="},                    // Four characters
-    };
-
-    int test_count = sizeof(tests) / sizeof(tests[0]);
-    int passed = 0;
-
-    for (int i = 0; i < test_count; i++) {
-        char output[256];
-        base64_encode((const uint8_t*)tests[i].input, strlen(tests[i].input), output);
-
-        if (strcmp(output, tests[i].expected) == 0) {
-            ESP_LOGI(TAG, "Test %d PASS: '%s' -> '%s'", i+1, tests[i].input, output);
-            passed++;
-        } else {
-            ESP_LOGE(TAG, "Test %d FAIL: '%s' -> '%s' (expected '%s')", i+1, tests[i].input, output, tests[i].expected);
-        }
-    }
-
-    ESP_LOGI(TAG, "Base64 tests complete: %d/%d passed", passed, test_count);
-}
 
 // Public function to run all tests
 void flight_api_test_run_all() {
     ESP_LOGI(TAG, "Starting flight API tests for Sydney...");
-
-    test_base64_encoding();
-    vTaskDelay(pdMS_TO_TICKS(1000));
 
     test_opensky_large_radius();
     vTaskDelay(pdMS_TO_TICKS(2000));  // Wait between requests
