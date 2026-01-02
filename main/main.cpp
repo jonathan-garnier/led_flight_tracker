@@ -170,6 +170,13 @@ extern "C" void app_main(void)
                     if (fc.lat_min < fc.lat_max && fc.lon_min < fc.lon_max) {
                         FlightAPI::instance().fetchFlights(fc.lat_min, fc.lat_max, fc.lon_min, fc.lon_max);
                         printf("Flight fetch complete: %zu flights found\n", FlightAPI::instance().getFlightCount());
+
+                        // Test credentials if they're stored but not yet validated
+                        OpenSkyAuthConfig auth = AppConfig::instance().getOpenSkyAuth();
+                        if (strlen(auth.username) > 0 && !auth.authenticated) {
+                            printf("Testing OpenSky credentials...\n");
+                            FlightAPI::instance().validateStoredCredentials();
+                        }
                     }
                 }
             }

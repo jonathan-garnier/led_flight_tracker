@@ -54,6 +54,10 @@ public:
     // Get time until next fetch is allowed (in seconds)
     int getSecondsUntilNextFetch() const;
 
+    // Validate stored credentials by testing them against the API
+    // Returns true if credentials are valid (can authenticate)
+    bool validateStoredCredentials();
+
 private:
     FlightAPI() = default;
     FlightAPI(const FlightAPI&) = delete;
@@ -61,6 +65,10 @@ private:
 
     std::vector<Flight> flights;
     int64_t lastFetchTime = -999999999;  // Initialize to far past to allow first fetch immediately
-    static constexpr int MIN_FETCH_INTERVAL = 30000;  // 30 seconds in milliseconds (safe for authenticated users: ~2,880 requests/day)
+    static constexpr int MIN_FETCH_INTERVAL_AUTHENTICATED = 30000;  // 30 seconds (safe for authenticated users: ~2,880 requests/day)
+    static constexpr int MIN_FETCH_INTERVAL_UNAUTHENTICATED = 300000;  // 5 minutes (safe for unauthenticated users)
     bool initialized = false;
+
+    // Get the appropriate fetch interval based on authentication status
+    int getMinFetchInterval() const;
 };

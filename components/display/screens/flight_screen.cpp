@@ -207,10 +207,10 @@ void FlightScreen::render(LEDMatrix& matrix)
             d->setTextColor(matrix.color565(100, 150, 255));
             d->print(altStr);
 
-            // Speed in m/s (line 3 right)
-            int speedMs = (int)(flight.velocity);
+            // Speed in km/h (line 3 right)
+            int speedKmh = (int)(flight.velocity * 3.6f);  // Convert m/s to km/h
             char speedStr[16];
-            snprintf(speedStr, sizeof(speedStr), "%dm/s", speedMs);
+            snprintf(speedStr, sizeof(speedStr), "%dkm", speedKmh);
             d->setCursor(42, 31);
             d->setTextColor(matrix.color565(255, 200, 0));
             d->print(speedStr);

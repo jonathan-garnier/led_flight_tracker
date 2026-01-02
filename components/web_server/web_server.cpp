@@ -61,20 +61,13 @@ static const char* html_page = "<!DOCTYPE html>\n"
 "      <label>Password:</label>\n"
 "      <input type=\"password\" name=\"password\" required maxlength=\"63\" placeholder=\"Your WiFi password\">\n"
 "\n"
-"      <h2>Location Settings</h2>\n"
-"      <label>Latitude (decimal degrees):</label>\n"
-"      <input type=\"number\" step=\"0.000001\" name=\"latitude\" placeholder=\"e.g., -33.8688\" required>\n"
-"\n"
-"      <label>Longitude (decimal degrees):</label>\n"
-"      <input type=\"number\" step=\"0.000001\" name=\"longitude\" placeholder=\"e.g., 151.2093\" required>\n"
-"\n"
+"      <h2>Search Area</h2>\n"
 "      <label>Bounding Box (GeoJSON):</label>\n"
-"      <textarea name=\"geojson\" maxlength=\"2000\" placeholder=\"Paste GeoJSON polygon here (optional). If provided, will override lat/lon.\"></textarea>\n"
-"      <p class=\"hint\">Or use geojson.io to draw a box and paste the GeoJSON here</p>\n"
-"\n"
-"      <label>Search Radius (degrees):</label>\n"
-"      <input type=\"number\" step=\"0.1\" min=\"0.1\" max=\"5.0\" name=\"radius\" placeholder=\"e.g., 0.5 (default)\">\n"
-"      <p class=\"hint\">Smaller values = fewer flights but less clutter. ~0.5° ≈ 55km</p>\n"
+"      <textarea name=\"geojson\" maxlength=\"2000\" placeholder=\"Paste GeoJSON polygon here. Use geojson.io to draw a box.\" required></textarea>\n"
+"      <p class=\"hint\">Visit geojson.io, draw a polygon around your search area, copy the GeoJSON, and paste it here</p>\n"
+"      <p class=\"note\" style=\"color: #4CAF50;\">\n"
+"        <b>Update Rate:</b> With OpenSky credentials, flights update every 30 seconds. Without credentials, every 5 minutes.\n"
+"      </p>\n"
 "\n"
 "      <h2>Time Settings</h2>\n"
 "      <label>Timezone:</label>\n"
@@ -488,27 +481,24 @@ esp_err_t WebServer::handleRoot(httpd_req_t* req) {
             "    </div>\n"
             "\n"
             "    <form method=\"POST\" action=\"/configure\">\n"
-            "      <h2>Location Settings</h2>\n"
-            "      <label>Latitude (decimal degrees):</label>\n"
-            "      <input type=\"number\" step=\"0.000001\" name=\"latitude\" value=\"%.6f\" required>\n"
-            "\n"
-            "      <label>Longitude (decimal degrees):</label>\n"
-            "      <input type=\"number\" step=\"0.000001\" name=\"longitude\" value=\"%.6f\" required>\n"
-            "\n"
+            "      <h2>Search Area</h2>\n"
             "      <label>Bounding Box (GeoJSON):</label>\n"
-            "      <textarea name=\"geojson\" maxlength=\"2000\" placeholder=\"Paste GeoJSON polygon here (optional). If provided, will override lat/lon.\"></textarea>\n"
-            "      <p class=\"hint\">Or use geojson.io to draw a box and paste the GeoJSON here</p>\n"
-            "\n"
-            "      <label>Search Radius (degrees):</label>\n"
-            "      <input type=\"number\" step=\"0.1\" min=\"0.1\" max=\"5.0\" name=\"radius\" value=\"%.1f\">\n"
-            "      <p class=\"hint\">Smaller values = fewer flights but less clutter. ~0.5° ≈ 55km</p>\n"
+            "      <textarea name=\"geojson\" maxlength=\"2000\" placeholder=\"Paste GeoJSON polygon here. Use geojson.io to draw a box.\" required></textarea>\n"
+            "      <p class=\"hint\">Visit geojson.io, draw a polygon around your search area, copy the GeoJSON, and paste it here</p>\n"
+            "      <p class=\"note\" style=\"color: #4CAF50;\">\n"
+            "        <b>Current Bounding Box:</b> Lat [%.4f, %.4f] Lon [%.4f, %.4f]<br>\n"
+            "        <b>Update Rate:</b> %s every %d seconds\n"
+            "      </p>\n"
             "\n"
             "      <h2>Time Settings</h2>\n"
             "      <label>Timezone:</label>\n"
             "      <select name=\"timezone\">\n",
-            loc.latitude,
-            loc.longitude,
-            flight_cfg.bbox_size
+            flight_cfg.lat_min,
+            flight_cfg.lat_max,
+            flight_cfg.lon_min,
+            flight_cfg.lon_max,
+            auth.authenticated ? "With OpenSky credentials:" : "Without OpenSky credentials:",
+            auth.authenticated ? 30 : 300
         );
 
         // Timezone options - mark current as selected
@@ -609,13 +599,10 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
     char sky_user[64] = {0};
     char sky_pass[64] = {0};
 
-    // Location and timezone are always required
-    if (!parse_form_value(content, "latitude", lat_str, sizeof(lat_str)) ||
-        !parse_form_value(content, "longitude", lon_str, sizeof(lon_str)) ||
-        !parse_form_value(content, "timezone", timezone, sizeof(timezone))) {
-
+    // Timezone is required
+    if (!parse_form_value(content, "timezone", timezone, sizeof(timezone))) {
         free(content);
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing required fields");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing timezone");
         return ESP_FAIL;
     }
 
@@ -623,7 +610,7 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
     parse_form_value(content, "sky_user", sky_user, sizeof(sky_user));
     parse_form_value(content, "sky_pass", sky_pass, sizeof(sky_pass));
 
-    // Parse optional GeoJSON (bounding box) - allocate on heap to avoid stack overflow
+    // Parse GeoJSON (bounding box) - REQUIRED - allocate on heap to avoid stack overflow
     char* geojson = (char*)malloc(2048);
     if (!geojson) {
         free(content);
@@ -631,82 +618,58 @@ esp_err_t WebServer::handleConfigure(httpd_req_t* req) {
         return ESP_FAIL;
     }
     geojson[0] = '\0';
-    float lat = atof(lat_str);
-    float lon = atof(lon_str);
-    float radius = 0.5f;  // Default radius
-
-    // Parse optional radius input from form
-    char radius_str[32] = {0};
-    if (parse_form_value(content, "radius", radius_str, sizeof(radius_str))) {
-        float parsed_radius = atof(radius_str);
-        if (parsed_radius >= 0.1f && parsed_radius <= 5.0f) {
-            radius = parsed_radius;
-        }
-    }
-
     parse_form_value(content, "geojson", geojson, 2048);
 
-    // Bounding box coordinates - will be set from GeoJSON or calculated from center+radius
-    float bbox_lat_min = lat - radius;
-    float bbox_lat_max = lat + radius;
-    float bbox_lon_min = lon - radius;
-    float bbox_lon_max = lon + radius;
-
-    // If GeoJSON is provided, parse it for bounding box
-    if (strlen(geojson) > 0) {
-        float lat_min, lat_max, lon_min, lon_max;
-        if (parse_geojson_polygon(geojson, &lat_min, &lat_max, &lon_min, &lon_max)) {
-            // Use actual bounding box from GeoJSON
-            bbox_lat_min = lat_min;
-            bbox_lat_max = lat_max;
-            bbox_lon_min = lon_min;
-            bbox_lon_max = lon_max;
-
-            // Calculate center point for display
-            lat = (lat_min + lat_max) / 2.0f;
-            lon = (lon_min + lon_max) / 2.0f;
-
-            // Calculate radius as half the maximum dimension
-            float lat_diff = (lat_max - lat_min) / 2.0f;
-            float lon_diff = (lon_max - lon_min) / 2.0f;
-            radius = (lat_diff > lon_diff) ? lat_diff : lon_diff;
-
-            // Ensure radius is at least 0.1 and at most 5.0
-            if (radius < 0.1f) radius = 0.1f;
-            if (radius > 5.0f) radius = 5.0f;
-
-            ESP_LOGI(TAG, "Using GeoJSON bounding box - Lat: [%.6f, %.6f], Lon: [%.6f, %.6f]", lat_min, lat_max, lon_min, lon_max);
-        } else {
-            ESP_LOGI(TAG, "GeoJSON parsing failed, using manual coordinates with radius");
-        }
-    }
-
-    // Validate and convert latitude/longitude
-    if (lat < -90.0f || lat > 90.0f || lon < -180.0f || lon > 180.0f) {
-        free(content);
+    // GeoJSON is required
+    if (strlen(geojson) == 0) {
         free(geojson);
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid latitude or longitude");
+        free(content);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Bounding box (GeoJSON) is required");
         return ESP_FAIL;
     }
 
+    // Parse GeoJSON to get bounding box coordinates
+    float bbox_lat_min, bbox_lat_max, bbox_lon_min, bbox_lon_max;
+    if (!parse_geojson_polygon(geojson, &bbox_lat_min, &bbox_lat_max, &bbox_lon_min, &bbox_lon_max)) {
+        free(geojson);
+        free(content);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid GeoJSON polygon. Please ensure it has at least 4 coordinate pairs");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Using GeoJSON bounding box - Lat: [%.6f, %.6f], Lon: [%.6f, %.6f]", bbox_lat_min, bbox_lat_max, bbox_lon_min, bbox_lon_max);
+
     ESP_LOGI(TAG, "Configuration valid:");
-    ESP_LOGI(TAG, "  Location: %.6f, %.6f", lat, lon);
+    ESP_LOGI(TAG, "  Bounding Box: Lat [%.6f, %.6f], Lon [%.6f, %.6f]", bbox_lat_min, bbox_lat_max, bbox_lon_min, bbox_lon_max);
     ESP_LOGI(TAG, "  Timezone: %s", timezone);
-    ESP_LOGI(TAG, "  Search radius: %.4f degrees", radius);
     if (strlen(sky_user) > 0) {
         ESP_LOGI(TAG, "  OpenSky user: %s", sky_user);
     }
 
     // Save to AppConfig
     AppConfig& config = AppConfig::instance();
-    config.setLocation(lat, lon);
+
+    // Calculate center point from bounding box for location storage
+    float center_lat = (bbox_lat_min + bbox_lat_max) / 2.0f;
+    float center_lon = (bbox_lon_min + bbox_lon_max) / 2.0f;
+
+    // Calculate bbox_size as half the maximum dimension
+    float lat_diff = (bbox_lat_max - bbox_lat_min) / 2.0f;
+    float lon_diff = (bbox_lon_max - bbox_lon_min) / 2.0f;
+    float bbox_size = (lat_diff > lon_diff) ? lat_diff : lon_diff;
+    if (bbox_size < 0.1f) bbox_size = 0.1f;
+    if (bbox_size > 5.0f) bbox_size = 5.0f;
+
+    config.setLocation(center_lat, center_lon);
     config.setTimezone(timezone);
-    config.setBBoxSize(radius);
+    config.setBBoxSize(bbox_size);
     config.setBoundingBox(bbox_lat_min, bbox_lat_max, bbox_lon_min, bbox_lon_max);
 
     // Save OpenSky credentials if provided
+    // NOTE: Validation is deferred to main loop to avoid stack overflow in HTTP handler
     if (strlen(sky_user) > 0 && strlen(sky_pass) > 0) {
         config.setOpenSkyAuth(sky_user, sky_pass);
+        ESP_LOGI(TAG, "OpenSky credentials saved - will be tested on next flight fetch");
     }
 
     // Handle AP mode: parse and save WiFi credentials

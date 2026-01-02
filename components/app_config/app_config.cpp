@@ -366,10 +366,11 @@ void AppConfig::setOpenSkyAuth(const char* username, const char* password) {
     strncpy(openSkyAuth.password, password, sizeof(openSkyAuth.password) - 1);
     openSkyAuth.password[sizeof(openSkyAuth.password) - 1] = '\0';
 
-    openSkyAuth.authenticated = true;
+    // Mark as NOT authenticated - credentials must be validated by API before enabling 30-second rate limit
+    openSkyAuth.authenticated = false;
     saveOpenSkyAuthToNVS();
 
-    ESP_LOGI(TAG, "OpenSky authentication set for user: %s", username);
+    ESP_LOGI(TAG, "OpenSky credentials stored for user: %s (pending validation)", username);
 }
 
 void AppConfig::saveOpenSkyAuthToNVS() {
@@ -387,6 +388,35 @@ void AppConfig::saveOpenSkyAuthToNVS() {
     nvs_close(handle);
 
     ESP_LOGI(TAG, "OpenSky authentication saved to NVS");
+}
+
+void AppConfig::validateOpenSkyAuth() {
+    if (strlen(openSkyAuth.username) > 0 && strlen(openSkyAuth.password) > 0) {
+        openSkyAuth.authenticated = true;
+        saveOpenSkyAuthToNVS();
+        ESP_LOGI(TAG, "OpenSky credentials validated - enabling 30-second rate limit");
+    }
+}
+
+void AppConfig::clearOpenSkyAuth() {
+    openSkyAuth.authenticated = false;
+
+    // Clear the stored credentials from NVS so they don't auto-enable on next boot
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("app_config", NVS_READWRITE, &handle);
+
+    if (err == ESP_OK) {
+        // Clear the stored credentials
+        nvs_erase_key(handle, "sky_user");
+        nvs_erase_key(handle, "sky_pass");
+        nvs_commit(handle);
+        nvs_close(handle);
+        ESP_LOGW(TAG, "OpenSky credentials cleared from NVS");
+    } else {
+        ESP_LOGW(TAG, "Failed to open NVS for clearing credentials");
+    }
+
+    ESP_LOGW(TAG, "OpenSky authentication cleared - reverting to unauthenticated rate limit (5 minutes)");
 }
 
 // ---------------------------------------------------

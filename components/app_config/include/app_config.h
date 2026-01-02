@@ -55,6 +55,8 @@ public:
     OpenSkyAuthConfig getOpenSkyAuth();
     void setOpenSkyAuth(const char* username, const char* password);
     bool hasOpenSkyAuth();
+    void clearOpenSkyAuth();  // Invalidates credentials (e.g., when API returns 401)
+    void validateOpenSkyAuth();  // Marks credentials as valid after successful API call
 
     // Display
     uint8_t getBrightness();

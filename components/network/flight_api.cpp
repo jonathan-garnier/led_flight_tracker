@@ -10,8 +10,9 @@
 
 static const char* TAG = "FlightAPI";
 
-// OpenSky Network API endpoint for all states
+// OpenSky Network API endpoints
 static const char* OPENSKY_API_URL = "https://opensky-network.org/api/states/all";
+static const char* OPENSKY_OWN_FLIGHTS_URL = "https://opensky-network.org/api/my/flights";  // Auth-required endpoint for credential testing
 
 // Buffer for HTTP response
 // OpenSky API returns ~100 bytes per flight, we expect max ~100 flights, plus JSON overhead
@@ -62,24 +63,31 @@ void FlightAPI::begin() {
     }
 }
 
+int FlightAPI::getMinFetchInterval() const {
+    // Return 30 seconds if authenticated, 5 minutes otherwise
+    return AppConfig::instance().hasOpenSkyAuth() ? MIN_FETCH_INTERVAL_AUTHENTICATED : MIN_FETCH_INTERVAL_UNAUTHENTICATED;
+}
+
 bool FlightAPI::canFetch() const {
     if (!initialized) return false;
 
     int64_t now = esp_timer_get_time() / 1000;  // Convert to milliseconds
-    return (now - lastFetchTime) >= MIN_FETCH_INTERVAL;
+    int interval = getMinFetchInterval();
+    return (now - lastFetchTime) >= interval;
 }
 
 int FlightAPI::getSecondsUntilNextFetch() const {
     if (!initialized) return 0;
 
     int64_t now = esp_timer_get_time() / 1000;  // Convert to milliseconds
+    int interval = getMinFetchInterval();
     int64_t elapsed = now - lastFetchTime;
 
-    if (elapsed >= MIN_FETCH_INTERVAL) {
+    if (elapsed >= interval) {
         return 0;
     }
 
-    return (MIN_FETCH_INTERVAL - elapsed) / 1000;  // Convert to seconds
+    return (interval - elapsed) / 1000;  // Convert to seconds
 }
 
 void FlightAPI::resetFetchTimer() {
@@ -165,10 +173,21 @@ bool FlightAPI::fetchFlights(float lat_min, float lat_max, float lon_min, float 
     int status_code = esp_http_client_get_status_code(client);
     esp_http_client_cleanup(client);
 
+    ESP_LOGI(TAG, "HTTP Status Code: %d, Has Auth: %s", status_code, AppConfig::instance().hasOpenSkyAuth() ? "yes" : "no");
+
     if (status_code != 200) {
         ESP_LOGE(TAG, "HTTP request failed with status: %d", status_code);
-        if (AppConfig::instance().hasOpenSkyAuth()) {
-            ESP_LOGE(TAG, "Authentication may have failed. Check credentials using: python3 test_opensky_api.py");
+
+        // Check for authentication failure (401 Unauthorized)
+        if (status_code == 401 && AppConfig::instance().hasOpenSkyAuth()) {
+            ESP_LOGE(TAG, "Authentication failed! Invalid OpenSky credentials. Reverting to unauthenticated rate limit (5 minutes).");
+            ESP_LOGE(TAG, "Credentials rejected by OpenSky API. Please verify your username and password at opensky-network.org");
+
+            // Clear the authenticated flag to revert to slower rate limiting
+            AppConfig::instance().clearOpenSkyAuth();
+            ESP_LOGI(TAG, "After clearOpenSkyAuth: hasOpenSkyAuth = %s", AppConfig::instance().hasOpenSkyAuth() ? "yes" : "no");
+        } else if (AppConfig::instance().hasOpenSkyAuth()) {
+            ESP_LOGE(TAG, "Check credentials using: python3 test_opensky_api.py");
         }
         return false;
     }
@@ -318,4 +337,72 @@ const std::vector<Flight>& FlightAPI::getFlights() const {
 
 size_t FlightAPI::getFlightCount() const {
     return flights.size();
+}
+
+bool FlightAPI::validateStoredCredentials() {
+    OpenSkyAuthConfig auth = AppConfig::instance().getOpenSkyAuth();
+
+    // Only validate if credentials are stored but not yet authenticated
+    if (strlen(auth.username) == 0 || strlen(auth.password) == 0 || auth.authenticated) {
+        return auth.authenticated;  // Already validated or no credentials
+    }
+
+    // Check if WiFi is connected
+    if (WiFiManager::instance().getState() != WiFiState::CONNECTED) {
+        ESP_LOGW(TAG, "Cannot validate credentials - WiFi not connected");
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Testing OpenSky credentials for user: %s", auth.username);
+
+    // Build URL with credentials - test using the /my/flights endpoint which requires auth
+    char url[256];
+    snprintf(url, sizeof(url),
+             "%s?begin=0&end=0&username=%s&password=%s",
+             OPENSKY_OWN_FLIGHTS_URL, auth.username, auth.password);
+
+    // Configure HTTP client
+    esp_http_client_config_t config = {};
+    config.url = url;
+    config.event_handler = http_event_handler;
+    config.timeout_ms = 5000;  // Shorter timeout for credential test
+    config.buffer_size = 2048;
+    config.crt_bundle_attach = esp_crt_bundle_attach;
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == nullptr) {
+        ESP_LOGE(TAG, "Failed to initialize HTTP client for credential test");
+        return false;
+    }
+
+    // Reset response buffer
+    http_response_len = 0;
+    memset(http_response_buffer, 0, MAX_HTTP_RESPONSE_SIZE);
+
+    // Perform GET request
+    esp_err_t err = esp_http_client_perform(client);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "HTTP credential test failed: %s", esp_err_to_name(err));
+        esp_http_client_cleanup(client);
+        return false;
+    }
+
+    int status_code = esp_http_client_get_status_code(client);
+    esp_http_client_cleanup(client);
+
+    if (status_code == 401) {
+        ESP_LOGE(TAG, "Credential test failed: 401 Unauthorized - credentials are invalid");
+        AppConfig::instance().clearOpenSkyAuth();
+        return false;
+    }
+
+    if (status_code == 200) {
+        ESP_LOGI(TAG, "Credential test passed: 200 OK - credentials are valid");
+        AppConfig::instance().validateOpenSkyAuth();
+        return true;
+    }
+
+    ESP_LOGW(TAG, "Credential test returned unexpected status: %d", status_code);
+    return false;
 }
