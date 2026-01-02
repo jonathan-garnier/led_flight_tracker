@@ -7,7 +7,11 @@ Tests both HTTP Basic Auth and query parameter authentication
 import requests
 import base64
 import json
+import sys
 from requests.auth import HTTPBasicAuth
+
+# Force UTF-8 output on Windows
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Configuration - UPDATE THESE WITH YOUR CREDENTIALS
 USERNAME = "fructis98-api-client"

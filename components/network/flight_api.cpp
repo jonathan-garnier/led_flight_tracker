@@ -19,52 +19,6 @@ static const char* OPENSKY_API_URL = "https://opensky-network.org/api/states/all
 static char* http_response_buffer = nullptr;
 static size_t http_response_len = 0;
 
-// Simple base64 encoding for HTTP Basic Auth
-static const char* base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-void base64_encode(const uint8_t* input, size_t input_len, char* output) {
-    size_t out_idx = 0;
-    for (size_t i = 0; i < input_len; i += 3) {
-        uint32_t n = 0;
-        int bytes = (input_len - i >= 3) ? 3 : (input_len - i);
-
-        for (int j = 0; j < bytes; j++) {
-            n |= (input[i + j] << (16 - j * 8));
-        }
-
-        output[out_idx++] = base64_chars[(n >> 18) & 0x3F];
-        output[out_idx++] = base64_chars[(n >> 12) & 0x3F];
-        output[out_idx++] = (bytes > 1) ? base64_chars[(n >> 6) & 0x3F] : '=';
-        output[out_idx++] = (bytes > 2) ? base64_chars[n & 0x3F] : '=';
-    }
-    output[out_idx] = '\0';
-}
-
-// Generate HTTP Basic Authentication header
-static void generate_basic_auth_header(const char* username, const char* password,
-                                       char* auth_header, size_t header_size) {
-    // Create credentials: "username:password"
-    char credentials[128];
-    snprintf(credentials, sizeof(credentials), "%s:%s", username, password);
-
-    size_t cred_len = strlen(credentials);
-    char encoded[200];
-    base64_encode((const uint8_t*)credentials, cred_len, encoded);
-
-    // Format as "Basic <base64>"
-    // Note: ESP32 HTTP client requires the exact format without extra whitespace
-    snprintf(auth_header, header_size, "Basic %s", encoded);
-}
-
-// Set HTTP Basic Auth on the client using built-in support
-static void set_http_basic_auth(esp_http_client_handle_t client, const char* username, const char* password) {
-    // Use ESP32's built-in HTTP Basic Auth support
-    // This is more reliable than manually creating the Authorization header
-    esp_http_client_set_authtype(client, HTTP_AUTH_TYPE_BASIC);
-    esp_http_client_set_username(client, username);
-    esp_http_client_set_password(client, password);
-}
-
 // HTTP event handler
 static esp_err_t http_event_handler(esp_http_client_event_t *evt) {
     switch(evt->event_id) {
@@ -155,11 +109,11 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
     ESP_LOGI(TAG, "Fetching flights - Center: (%.4f, %.4f), Radius: %.4f", lat, lon, radius);
     ESP_LOGI(TAG, "Bounding box - Lat: [%.4f, %.4f], Lon: [%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
 
-    // Build URL with bounding box parameters
-    // Note: OpenSky API can accept credentials in query string or HTTP Basic Auth
+    // Build URL with bounding box parameters and credentials
+    // Note: OpenSky API only supports credentials in query parameters
     char url[512];
     if (AppConfig::instance().hasOpenSkyAuth()) {
-        // Try adding credentials as query parameters
+        // Add credentials as query parameters
         OpenSkyAuthConfig auth = AppConfig::instance().getOpenSkyAuth();
         snprintf(url, sizeof(url),
                  "%s?lamin=%.4f&lomin=%.4f&lamax=%.4f&lomax=%.4f&username=%s&password=%s",
@@ -190,21 +144,8 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
         return false;
     }
 
-    // Apply HTTP Basic Authentication if credentials are configured
-    OpenSkyAuthConfig auth = AppConfig::instance().getOpenSkyAuth();
-    if (AppConfig::instance().hasOpenSkyAuth()) {
-        ESP_LOGI(TAG, "Applying HTTP Basic Authentication for user: %s", auth.username);
-        ESP_LOGI(TAG, "Username length: %d, Password length: %d", strlen(auth.username), strlen(auth.password));
-
-        // Try both built-in auth AND manual header for compatibility
-        set_http_basic_auth(client, auth.username, auth.password);
-
-        // Also manually set the Authorization header as a backup
-        char auth_header[256];
-        generate_basic_auth_header(auth.username, auth.password, auth_header, sizeof(auth_header));
-        esp_http_client_set_header(client, "Authorization", auth_header);
-        ESP_LOGD(TAG, "Authorization header set: %.20s...", auth_header);
-    }
+    // Note: Credentials are passed via query parameters in the URL above
+    // (OpenSky API does not support HTTP Basic Auth)
 
     // Perform GET request
     esp_err_t err = esp_http_client_perform(client);

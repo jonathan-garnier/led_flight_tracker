@@ -6,7 +6,12 @@
       "Bash(idf.py build:*)",
       "Bash(idf.py set-target:*)",
       "Bash(python idf.py build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(python test_opensky_api.py:*)"
     ],
     "deny": [],
     "ask": []

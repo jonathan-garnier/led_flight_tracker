@@ -25,9 +25,6 @@ struct Flight {
     }
 };
 
-// Utility function for base64 encoding (used for HTTP Basic Auth)
-void base64_encode(const uint8_t* input, size_t input_len, char* output);
-
 // FlightAPI singleton class for fetching flight data from OpenSky Network
 class FlightAPI {
 public:
