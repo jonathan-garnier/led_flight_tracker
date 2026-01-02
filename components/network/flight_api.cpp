@@ -242,6 +242,13 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
             }
         }
 
+        // Index 2: origin_country
+        cJSON *country = cJSON_GetArrayItem(state, 2);
+        if (country && cJSON_IsString(country) && country->valuestring) {
+            strncpy(flight.country, country->valuestring, sizeof(flight.country) - 1);
+            flight.country[sizeof(flight.country) - 1] = '\0';
+        }
+
         // Index 6: latitude
         cJSON *latitude = cJSON_GetArrayItem(state, 6);
         if (latitude && cJSON_IsNumber(latitude)) {

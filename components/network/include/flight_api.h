@@ -15,6 +15,7 @@ struct Flight {
     int64_t lastContact;         // Unix timestamp of last position update
     char departureAirport[8];    // Departure airport ICAO code (e.g., "KSFO")
     char arrivalAirport[8];      // Arrival airport ICAO code (e.g., "KJFK")
+    char country[32];            // Aircraft origin country
     bool valid;                  // Whether this flight data is valid
 
     Flight() : latitude(0), longitude(0), altitude(0), velocity(0),
@@ -22,6 +23,7 @@ struct Flight {
         callsign[0] = '\0';
         departureAirport[0] = '\0';
         arrivalAirport[0] = '\0';
+        country[0] = '\0';
     }
 };
 

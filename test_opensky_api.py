@@ -156,6 +156,81 @@ def test_base64_encoding():
     return True
 
 
+def test_flight_data_detailed():
+    """Test API with query params and show all flight data"""
+    print("\n" + "="*60)
+    print("DETAILED FLIGHT DATA (Query Parameter Auth)")
+    print("="*60)
+
+    params = {
+        "lamin": LAT_MIN,
+        "lomin": LON_MIN,
+        "lamax": LAT_MAX,
+        "lomax": LON_MAX,
+        "username": USERNAME,
+        "password": PASSWORD
+    }
+
+    try:
+        response = requests.get(API_URL, params=params, timeout=10)
+        print(f"Status Code: {response.status_code}")
+
+        if response.status_code == 200:
+            data = response.json()
+            flights = data.get('states', [])
+            print(f"Found {len(flights)} flights\n")
+
+            if len(flights) > 0:
+                print("="*120)
+                print("FLIGHT DATA BREAKDOWN")
+                print("="*120)
+
+                for i, flight in enumerate(flights[:20]):  # Show first 20 flights
+                    print(f"\n--- Flight {i+1} ---")
+
+                    # Array indices according to OpenSky API documentation:
+                    # 0: icao24, 1: callsign, 2: origin_country, 3: time_position, 4: last_contact
+                    # 5: longitude, 6: latitude, 7: baro_altitude, 8: on_ground, 9: velocity
+                    # 10: true_track, 11: vertical_rate, 12: sensors, 13: geo_altitude
+                    # 14: squawk, 15: spi, 16: position_source, 17: category
+
+                    if len(flight) > 0:
+                        print(f"Index 0  - ICAO24: {flight[0]}")
+                    if len(flight) > 1:
+                        print(f"Index 1  - Callsign: {flight[1]}")
+                    if len(flight) > 2:
+                        print(f"Index 2  - Country: {flight[2]}")
+                    if len(flight) > 5:
+                        print(f"Index 5  - Longitude: {flight[5]}")
+                    if len(flight) > 6:
+                        print(f"Index 6  - Latitude: {flight[6]}")
+                    if len(flight) > 7:
+                        print(f"Index 7  - Baro Altitude (m): {flight[7]}")
+                    if len(flight) > 9:
+                        print(f"Index 9  - Velocity (m/s): {flight[9]}")
+                    if len(flight) > 10:
+                        print(f"Index 10 - True Track (degrees): {flight[10]}")
+                    if len(flight) > 13:
+                        print(f"Index 13 - Geo Altitude (m): {flight[13]}")
+                    if len(flight) > 14:
+                        print(f"Index 14 - Squawk: {flight[14]}")
+                    if len(flight) > 17:
+                        print(f"Index 17 - Category: {flight[17]}")
+
+                    # Print full array for inspection
+                    print(f"\nFull array ({len(flight)} elements):")
+                    for idx, val in enumerate(flight):
+                        print(f"  [{idx}]: {val}")
+
+            return True
+        else:
+            print(f"✗ FAILED: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"✗ ERROR: {e}")
+        return False
+
+
 def main():
     print("\n" + "="*60)
     print("OpenSky Network API Authentication Test")
@@ -163,7 +238,6 @@ def main():
 
     results = {
         "Without Auth": test_without_auth(),
-        "Basic Auth": test_basic_auth(),
         "Query Params": test_query_params_auth(),
         "Base64 Encoding": test_base64_encoding()
     }
@@ -180,23 +254,19 @@ def main():
     print("INTERPRETATION")
     print("="*60)
 
-    if results["Without Auth"] and results["Basic Auth"]:
-        print("✓ Credentials are valid! Basic Auth works.")
-        print("  → The ESP32 stack overflow is likely due to recursion in the fallback test")
-        print("  → Remove the fallback test code from flight_api.cpp")
-    elif results["Without Auth"] and results["Query Params"]:
+    if results["Without Auth"] and results["Query Params"]:
         print("✓ Credentials are valid with query parameters!")
-        print("  → Use query parameter authentication instead of Basic Auth")
-        print("  → Remove HTTP Basic Auth code, keep only query params")
-    elif results["Without Auth"] and not results["Basic Auth"]:
+        print("  → Use query parameter authentication")
+    elif results["Without Auth"] and not results["Query Params"]:
         print("✗ Credentials are INVALID")
-        print("  → Check credentials.json and re-enter them")
-        print("  → Make sure you copied the API username/password, not account login")
+        print("  → Check credentials and re-enter them")
     elif not results["Without Auth"]:
         print("✗ Cannot reach OpenSky API at all")
         print("  → Check your internet connection")
-        print("  → Check if opensky-network.org is accessible")
 
+    # Now show detailed flight data
+    print("\n")
+    test_flight_data_detailed()
     print("\n")
 
 
