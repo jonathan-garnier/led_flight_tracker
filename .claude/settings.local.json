@@ -12,7 +12,17 @@
       "Bash(pip install:*)",
       "Bash(python -m pip install:*)",
       "Bash(python test_opensky_api.py:*)",
-      "Bash(python -m esptool:*)"
+      "Bash(python -m esptool:*)",
+      "Bash(ninja:*)",
+      "Bash(where:*)",
+      "Bash(cmake --build:*)",
+      "Bash(python -m esptool.py:*)",
+      "Bash(g++:*)",
+      "Bash(./test_geojson_parse:*)",
+      "Bash(clang++:*)",
+      "Bash(dir:*)",
+      "Bash(python ../tools/idf.py:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

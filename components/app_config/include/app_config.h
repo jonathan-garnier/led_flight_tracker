@@ -14,8 +14,13 @@ struct TimeConfig {
 };
 
 struct FlightConfig {
-    uint32_t update_interval = 300;  // seconds (5 minutes for anonymous API)
-    float bbox_size = 0.5f;          // degrees (~55km radius)
+    uint32_t update_interval = 30;   // seconds (30 seconds default - safe for authenticated users: ~2,880 requests/day)
+    float bbox_size = 0.5f;          // degrees (~55km radius) - kept for compatibility
+    // Bounding box coordinates (lat_min, lat_max, lon_min, lon_max)
+    float lat_min = -90.0f;
+    float lat_max = 90.0f;
+    float lon_min = -180.0f;
+    float lon_max = 180.0f;
 };
 
 struct OpenSkyAuthConfig {
@@ -44,6 +49,7 @@ public:
     FlightConfig getFlightConfig();
     void setFlightUpdateInterval(uint32_t seconds);
     void setBBoxSize(float degrees);
+    void setBoundingBox(float lat_min, float lat_max, float lon_min, float lon_max);
 
     // OpenSky Authentication
     OpenSkyAuthConfig getOpenSkyAuth();

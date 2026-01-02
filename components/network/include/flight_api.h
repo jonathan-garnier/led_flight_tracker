@@ -35,9 +35,12 @@ public:
     // Initialize the API client
     void begin();
 
-    // Fetch flights within a bounding box around the given location
-    // radius is in degrees (approximately 1 degree = 111km)
-    bool fetchFlights(float lat, float lon, float radius);
+    // Fetch flights within a geographic bounding box
+    // Parameters: lat_min, lat_max (latitude bounds), lon_min, lon_max (longitude bounds)
+    bool fetchFlights(float lat_min, float lat_max, float lon_min, float lon_max);
+
+    // Reset fetch timer to allow immediate fetch (used when settings change via web interface)
+    void resetFetchTimer();
 
     // Get the list of flights from the last successful fetch
     const std::vector<Flight>& getFlights() const;
@@ -58,6 +61,6 @@ private:
 
     std::vector<Flight> flights;
     int64_t lastFetchTime = -999999999;  // Initialize to far past to allow first fetch immediately
-    const int MIN_FETCH_INTERVAL = 300000;  // 5 minutes in milliseconds (300 seconds)
+    static constexpr int MIN_FETCH_INTERVAL = 30000;  // 30 seconds in milliseconds (safe for authenticated users: ~2,880 requests/day)
     bool initialized = false;
 };

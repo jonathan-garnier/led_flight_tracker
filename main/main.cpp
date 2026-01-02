@@ -104,10 +104,14 @@ extern "C" void app_main(void)
                 printf("WiFi connected, starting SNTP\n");
                 time_sync_start();
 
-                // Stop web server if it was running
-                if (WebServer::instance().isRunning()) {
-                    printf("Stopping web server (connected to STA)\n");
-                    WebServer::instance().stop();
+                // Start web server in STA mode for settings updates
+                if (!WebServer::instance().isRunning()) {
+                    printf("Starting web server in STA mode for settings updates\n");
+                    WebServer::instance().begin(ServerMode::STA_MODE);
+                } else {
+                    // If already running (from AP mode), switch to STA mode
+                    printf("Switching web server to STA mode\n");
+                    WebServer::instance().setMode(ServerMode::STA_MODE);
                 }
 
                 // Trigger an immediate flight fetch (if we have location configured)
@@ -115,7 +119,12 @@ extern "C" void app_main(void)
                 if (loc.valid) {
                     printf("Fetching initial flight data...\n");
                     FlightConfig fc = AppConfig::instance().getFlightConfig();
-                    FlightAPI::instance().fetchFlights(loc.latitude, loc.longitude, fc.bbox_size);
+                    // Validate bbox before fetching
+                    if (fc.lat_min < fc.lat_max && fc.lon_min < fc.lon_max) {
+                        FlightAPI::instance().fetchFlights(fc.lat_min, fc.lat_max, fc.lon_min, fc.lon_max);
+                    } else {
+                        printf("Warning: Invalid bounding box\n");
+                    }
                 }
             }
             else {
@@ -157,8 +166,11 @@ extern "C" void app_main(void)
                 LocationConfig loc = AppConfig::instance().getLocation();
                 if (loc.valid) {
                     FlightConfig fc = AppConfig::instance().getFlightConfig();
-                    FlightAPI::instance().fetchFlights(loc.latitude, loc.longitude, fc.bbox_size);
-                    printf("Flight fetch complete: %zu flights found\n", FlightAPI::instance().getFlightCount());
+                    // Validate bbox before fetching
+                    if (fc.lat_min < fc.lat_max && fc.lon_min < fc.lon_max) {
+                        FlightAPI::instance().fetchFlights(fc.lat_min, fc.lat_max, fc.lon_min, fc.lon_max);
+                        printf("Flight fetch complete: %zu flights found\n", FlightAPI::instance().getFlightCount());
+                    }
                 }
             }
         }

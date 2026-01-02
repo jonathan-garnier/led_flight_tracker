@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "web_server.cpp"
     INCLUDE_DIRS "include"
-    REQUIRES esp_http_server esp_wifi app_config wifi_manager log
+    REQUIRES esp_http_server esp_wifi app_config wifi_manager network log
 )

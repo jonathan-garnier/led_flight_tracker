@@ -82,7 +82,14 @@ int FlightAPI::getSecondsUntilNextFetch() const {
     return (MIN_FETCH_INTERVAL - elapsed) / 1000;  // Convert to seconds
 }
 
-bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
+void FlightAPI::resetFetchTimer() {
+    // Set fetch time to far past to allow immediate fetch
+    // This is used when settings change via web interface
+    lastFetchTime = -999999999;
+    ESP_LOGI(TAG, "Fetch timer reset - immediate fetch allowed");
+}
+
+bool FlightAPI::fetchFlights(float lat_min, float lat_max, float lon_min, float lon_max) {
     if (!initialized) {
         ESP_LOGE(TAG, "FlightAPI not initialized");
         return false;
@@ -100,14 +107,13 @@ bool FlightAPI::fetchFlights(float lat, float lon, float radius) {
         return false;
     }
 
-    // Calculate bounding box
-    float lat_min = lat - radius;
-    float lat_max = lat + radius;
-    float lon_min = lon - radius;
-    float lon_max = lon + radius;
+    // Validate bounding box
+    if (lat_min >= lat_max || lon_min >= lon_max) {
+        ESP_LOGE(TAG, "Invalid bounding box: lat[%.4f, %.4f], lon[%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
+        return false;
+    }
 
-    ESP_LOGI(TAG, "Fetching flights - Center: (%.4f, %.4f), Radius: %.4f", lat, lon, radius);
-    ESP_LOGI(TAG, "Bounding box - Lat: [%.4f, %.4f], Lon: [%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
+    ESP_LOGI(TAG, "Fetching flights from bounding box - Lat: [%.4f, %.4f], Lon: [%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
 
     // Build URL with bounding box parameters and credentials
     // Note: OpenSky API only supports credentials in query parameters

@@ -81,6 +81,37 @@ void AppConfig::loadFromNVS() {
         ESP_LOGI(TAG, "Loaded bounding box size from NVS");
     }
 
+    // Load bounding box coordinates
+    float lat_min_val, lat_max_val, lon_min_val, lon_max_val;
+    size_t bbox_coord_size = sizeof(float);
+    bool has_valid_bbox = false;
+
+    if (nvs_get_blob(handle, "bbox_lat_min", &lat_min_val, &bbox_coord_size) == ESP_OK &&
+        nvs_get_blob(handle, "bbox_lat_max", &lat_max_val, &bbox_coord_size) == ESP_OK &&
+        nvs_get_blob(handle, "bbox_lon_min", &lon_min_val, &bbox_coord_size) == ESP_OK &&
+        nvs_get_blob(handle, "bbox_lon_max", &lon_max_val, &bbox_coord_size) == ESP_OK) {
+
+        // Validate that we have reasonable bbox values
+        if (lat_min_val < lat_max_val && lon_min_val < lon_max_val) {
+            flightConfig.lat_min = lat_min_val;
+            flightConfig.lat_max = lat_max_val;
+            flightConfig.lon_min = lon_min_val;
+            flightConfig.lon_max = lon_max_val;
+            has_valid_bbox = true;
+        }
+    }
+
+    // If no valid bbox loaded from NVS, calculate it from location and bbox_size
+    if (!has_valid_bbox && location.valid) {
+        float half_size = flightConfig.bbox_size / 2.0f;
+        flightConfig.lat_min = location.latitude - half_size;
+        flightConfig.lat_max = location.latitude + half_size;
+        flightConfig.lon_min = location.longitude - half_size;
+        flightConfig.lon_max = location.longitude + half_size;
+        ESP_LOGI(TAG, "Calculated bbox from location: Lat[%.4f, %.4f], Lon[%.4f, %.4f]",
+                 flightConfig.lat_min, flightConfig.lat_max, flightConfig.lon_min, flightConfig.lon_max);
+    }
+
     // Load brightness
     uint8_t bright;
     if (nvs_get_u8(handle, "brightness", &bright) == ESP_OK) {
@@ -128,9 +159,19 @@ void AppConfig::setLocation(float lat, float lon) {
     location.longitude = lon;
     location.valid = true;
 
+    // Also update bounding box based on new location and current bbox_size
+    float half_size = flightConfig.bbox_size / 2.0f;
+    flightConfig.lat_min = lat - half_size;
+    flightConfig.lat_max = lat + half_size;
+    flightConfig.lon_min = lon - half_size;
+    flightConfig.lon_max = lon + half_size;
+
     saveLocationToNVS();
+    saveFlightConfigToNVS();
 
     ESP_LOGI(TAG, "Location set to: %.4f, %.4f", lat, lon);
+    ESP_LOGI(TAG, "Bounding box updated: Lat[%.4f, %.4f], Lon[%.4f, %.4f]",
+             flightConfig.lat_min, flightConfig.lat_max, flightConfig.lon_min, flightConfig.lon_max);
 }
 
 void AppConfig::saveLocationToNVS() {
@@ -219,6 +260,27 @@ void AppConfig::setBBoxSize(float degrees) {
     ESP_LOGI(TAG, "Bounding box size set to: %.2f degrees", degrees);
 }
 
+void AppConfig::setBoundingBox(float lat_min, float lat_max, float lon_min, float lon_max) {
+    // Validate bounding box
+    if (lat_min >= lat_max || lon_min >= lon_max) {
+        ESP_LOGE(TAG, "Invalid bounding box: lat[%.4f, %.4f], lon[%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
+        return;
+    }
+
+    if (lat_min < -90.0f || lat_max > 90.0f || lon_min < -180.0f || lon_max > 180.0f) {
+        ESP_LOGE(TAG, "Bounding box out of valid range");
+        return;
+    }
+
+    flightConfig.lat_min = lat_min;
+    flightConfig.lat_max = lat_max;
+    flightConfig.lon_min = lon_min;
+    flightConfig.lon_max = lon_max;
+    saveFlightConfigToNVS();
+
+    ESP_LOGI(TAG, "Bounding box set to - Lat: [%.4f, %.4f], Lon: [%.4f, %.4f]", lat_min, lat_max, lon_min, lon_max);
+}
+
 void AppConfig::saveFlightConfigToNVS() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open("app_config", NVS_READWRITE, &handle);
@@ -230,6 +292,10 @@ void AppConfig::saveFlightConfigToNVS() {
 
     nvs_set_u32(handle, "flight_int", flightConfig.update_interval);
     nvs_set_blob(handle, "bbox_size", &flightConfig.bbox_size, sizeof(float));
+    nvs_set_blob(handle, "bbox_lat_min", &flightConfig.lat_min, sizeof(float));
+    nvs_set_blob(handle, "bbox_lat_max", &flightConfig.lat_max, sizeof(float));
+    nvs_set_blob(handle, "bbox_lon_min", &flightConfig.lon_min, sizeof(float));
+    nvs_set_blob(handle, "bbox_lon_max", &flightConfig.lon_max, sizeof(float));
     nvs_commit(handle);
     nvs_close(handle);
 

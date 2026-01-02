@@ -6,6 +6,17 @@
 #include <Fonts/TomThumb.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
+
+// Helper function to calculate centered X position for text
+// TomThumb font at size 2: 5 pixels per character (adjusted for actual rendering)
+static int calculateCenteredX(const char* text, int displayWidth) {
+    int textLen = strlen(text);
+    int charWidth = 6;  // TomThumb font width at size 2 (actual rendered width)
+    int totalWidth = textLen * (charWidth + 1);
+    int x = (displayWidth - totalWidth) / 2;
+    return (x < 0) ? 0 : x;  // Clamp to minimum of 0
+}
 
 void FlightScreen::onEnter()
 {
@@ -142,10 +153,13 @@ void FlightScreen::render(LEDMatrix& matrix)
             d->setTextColor(matrix.color565(0, 255, 200));
             d->print(flight.arrivalAirport);
 
-            // Display flight callsign (line 2)
-            d->setCursor(2, 16);
+            // Display flight callsign (line 2) - centered
+            d->setTextSize(2);
+            int callsignX = calculateCenteredX(flight.callsign, 64);
+            d->setCursor(callsignX, 11);
             d->setTextColor(matrix.color565(255, 255, 0));
             d->print(flight.callsign);
+            d->setTextSize(1);
 
             // Altitude in feet (line 3)
             int altFeet = (int)(flight.altitude * 3.28084f);  // Convert meters to feet
@@ -167,8 +181,9 @@ void FlightScreen::render(LEDMatrix& matrix)
             // Display format without airport codes (fallback)
             d->setTextSize(2);
 
-            // Draw flight callsign (line 1)
-            d->setCursor(2, 17);
+            // Draw flight callsign (line 1) - centered
+            int callsignX = calculateCenteredX(flight.callsign, 64);
+            d->setCursor(callsignX, 17);
             d->setTextColor(matrix.color565(0, 255, 0));
             d->print(flight.callsign);
 
