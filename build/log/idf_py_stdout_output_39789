@@ -1,0 +1,81 @@
+[1/5] cd /home/jono/repos/led_flight_tracker/build/esp-idf/esptool_py && /home/jono/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/jono/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/jono/repos/led_flight_tracker/build/partition_table/partition-table.bin /home/jono/repos/led_flight_tracker/build/led_flight_tracker.bin
+led_flight_tracker.bin binary size 0xfec80 bytes. Smallest app partition is 0x177000 bytes. 0x78380 bytes (32%) free.
+[2/5] Performing build step for 'bootloader'
+[1/1] cd /home/jono/repos/led_flight_tracker/build/bootloader/esp-idf/esptool_py && /home/jono/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/jono/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/jono/repos/led_flight_tracker/build/bootloader/bootloader.bin
+Bootloader binary size 0x51c0 bytes. 0x2e40 bytes (36%) free.
+[3/5] No install step for 'bootloader'
+[4/5] Completed 'bootloader'
+[4/5] cd /home/jono/esp/esp-idf/components/esptool_py && /usr/bin/cmake -D IDF_PATH=/home/jono/esp/esp-idf -D "SERIAL_TOOL=/home/jono/.espressif/python_env/idf5.4_py3.12_env/bin/python;;/home/jono/esp/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/home/jono/repos/led_flight_tracker/build -P /home/jono/esp/esp-idf/components/esptool_py/run_serial_tool.cmake
+esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 bootloader/bootloader.bin 0x10000 led_flight_tracker.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.11.0
+Serial port /dev/ttyACM0
+Connecting....
+Chip is ESP32-S3 (QFN56) (revision v0.2)
+Features: WiFi, BLE, Embedded PSRAM 2MB (AP_3v3)
+Crystal is 40MHz
+MAC: 98:3d:ae:9d:b0:58
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x0010efff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 20928 bytes to 13317...
+Writing at 0x00000000... (100 %)
+Wrote 20928 bytes (13317 compressed) at 0x00000000 in 0.7 seconds (effective 245.2 kbit/s)...
+Hash of data verified.
+Compressed 1043584 bytes to 661872...
+Writing at 0x00010000... (2 %)
+Writing at 0x0001c86f... (4 %)
+Writing at 0x00027b54... (7 %)
+Writing at 0x0002c606... (9 %)
+Writing at 0x000314c7... (12 %)
+Writing at 0x00036999... (14 %)
+Writing at 0x0003d862... (17 %)
+Writing at 0x000499a5... (19 %)
+Writing at 0x0004f56c... (21 %)
+Writing at 0x000556a4... (24 %)
+Writing at 0x0005be74... (26 %)
+Writing at 0x00062686... (29 %)
+Writing at 0x0006873a... (31 %)
+Writing at 0x0006e119... (34 %)
+Writing at 0x00073fb7... (36 %)
+Writing at 0x00079d6f... (39 %)
+Writing at 0x0007ff6d... (41 %)
+Writing at 0x00085e18... (43 %)
+Writing at 0x0008bac0... (46 %)
+Writing at 0x000915e5... (48 %)
+Writing at 0x00097609... (51 %)
+Writing at 0x0009d57e... (53 %)
+Writing at 0x000a3447... (56 %)
+Writing at 0x000a8816... (58 %)
+Writing at 0x000ad833... (60 %)
+Writing at 0x000b302f... (63 %)
+Writing at 0x000b87c2... (65 %)
+Writing at 0x000bdcb7... (68 %)
+Writing at 0x000c312f... (70 %)
+Writing at 0x000c8d67... (73 %)
+Writing at 0x000ce6ac... (75 %)
+Writing at 0x000d41f5... (78 %)
+Writing at 0x000d9f99... (80 %)
+Writing at 0x000e02f3... (82 %)
+Writing at 0x000e5a8e... (85 %)
+Writing at 0x000eaf4d... (87 %)
+Writing at 0x000f4038... (90 %)
+Writing at 0x000fa92a... (92 %)
+Writing at 0x00100b1e... (95 %)
+Writing at 0x001072d5... (97 %)
+Writing at 0x0010c363... (100 %)
+Wrote 1043584 bytes (661872 compressed) at 0x00010000 in 14.2 seconds (effective 588.7 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 105...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (105 compressed) at 0x00008000 in 0.1 seconds (effective 377.5 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...

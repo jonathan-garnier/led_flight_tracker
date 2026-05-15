@@ -1,0 +1,480 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x28 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1564
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xd24
+load:0x403cb700,len:0x2ed4
+entry 0x403c8928
+[0;32mI (27) boot: ESP-IDF v5.4.3 2nd stage bootloader[0m
+[0;32mI (27) boot: compile time Apr 13 2026 10:06:58[0m
+[0;32mI (27) boot: Multicore bootloader[0m
+[0;32mI (27) boot: chip revision: v0.2[0m
+[0;32mI (30) boot: efuse block revision: v1.3[0m
+[0;32mI (34) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (37) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (41) boot.esp32s3: SPI Flash Size : 16MB[0m
+[0;32mI (45) boot: Enabling RNG early entropy source...[0m
+[0;32mI (49) boot: Partition Table:[0m
+[0;32mI (52) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (58) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (65) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (71) boot:  2 factory          factory app      00 00 00010000 00177000[0m
+[0;32mI (78) boot: End of partition table[0m
+[0;32mI (81) esp_image: segment 0: paddr=00010020 vaddr=3c0b0020 size=347d4h (214996) map[0m
+[0;32mI (127) esp_image: segment 1: paddr=000447fc vaddr=3fc9a100 size=04b4ch ( 19276) load[0m
+[0;32mI (136) esp_image: segment 2: paddr=00049350 vaddr=40374000 size=06cc8h ( 27848) load[0m
+[0;32mI (142) esp_image: segment 3: paddr=00050020 vaddr=42000020 size=afa90h (719504) map[0m
+[0;32mI (269) esp_image: segment 4: paddr=000ffab8 vaddr=4037acc8 size=0f3a4h ( 62372) load[0m
+[0;32mI (288) esp_image: segment 5: paddr=0010ee64 vaddr=50000000 size=0001ch (    28) load[0m
+[0;32mI (297) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (297) boot: Disabling RNG early entropy source...[0m
+[0;32mI (307) cpu_start: Multicore app[0m
+[0;32mI (316) cpu_start: Pro cpu start user code[0m
+[0;32mI (316) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (316) app_init: Application information:[0m
+[0;32mI (317) app_init: Project name:     led_flight_tracker[0m
+[0;32mI (321) app_init: App version:      1[0m
+[0;32mI (325) app_init: Compile time:     Apr 13 2026 10:06:28[0m
+[0;32mI (330) app_init: ELF file SHA256:  12b15c608...[0m
+[0;32mI (334) app_init: ESP-IDF:          v5.4.3[0m
+[0;32mI (338) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (342) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (346) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (350) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (356) heap_init: At 3FCA3618 len 000460F8 (280 KiB): RAM[0m
+[0;32mI (361) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (366) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (371) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM[0m
+[0;32mI (378) spi_flash: detected chip: winbond[0m
+[0;32mI (380) spi_flash: flash io: dio[0m
+[0;32mI (384) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (390) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (397) main_task: Started on CPU0[0m
+[0;32mI (428) main_task: Calling app_main()[0m
+[0;32mI (461) display: Arduino HAL initialized[0m
+[0;32mI (461) gpio: GPIO[38]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (462) button: Button initialized on GPIO 38[0m
+[0;32mI (469) config_storage: Config loaded: SSID=MM-Devices, API user=garnjo27@gmail.com, bbox=[-33.9558,151.1527,-33.9192,151.2043][0m
+[0;32mI (477) flight_api: API credentials set for user: garnjo27@gmail.com[0m
+[0;32mI (483) main: Connecting to WiFi: MM-Devices[0m
+[0;32mI (489) pp: pp rom version: e7ae62f[0m
+[0;32mI (491) net80211: net80211 rom version: e7ae62f[0m
+[0;32mI (496) wifi:wifi driver task: 3fcaea7c, prio:23, stack:6656, core=0[0m
+[0;32mI (515) wifi:wifi firmware version: e8ce6e2[0m
+[0;32mI (515) wifi:wifi certification version: v7.0[0m
+[0;32mI (516) wifi:config NVS flash: enabled[0m
+[0;32mI (516) wifi:config nano formatting: disabled[0m
+[0;32mI (520) wifi:Init data frame dynamic rx buffer num: 32[0m
+[0;32mI (525) wifi:Init static rx mgmt buffer num: 5[0m
+[0;32mI (529) wifi:Init management short buffer num: 32[0m
+[0;32mI (533) wifi:Init dynamic tx buffer num: 32[0m
+[0;32mI (537) wifi:Init static tx FG buffer num: 2[0m
+[0;32mI (541) wifi:Init static rx buffer size: 1600[0m
+[0;32mI (545) wifi:Init static rx buffer num: 10[0m
+[0;32mI (549) wifi:Init dynamic rx buffer num: 32[0m
+[0;32mI (554) wifi_init: rx ba win: 6[0m
+[0;32mI (556) wifi_init: accept mbox: 6[0m
+[0;32mI (559) wifi_init: tcpip mbox: 32[0m
+[0;32mI (562) wifi_init: udp mbox: 6[0m
+[0;32mI (564) wifi_init: tcp mbox: 6[0m
+[0;32mI (567) wifi_init: tcp tx win: 5760[0m
+[0;32mI (570) wifi_init: tcp rx win: 5760[0m
+[0;32mI (574) wifi_init: tcp mss: 1440[0m
+[0;32mI (577) wifi_init: WiFi IRAM OP enabled[0m
+[0;32mI (580) wifi_init: WiFi RX IRAM OP enabled[0m
+[0;33mW (585) wifi:Password length matches WPA2 standards, authmode threshold changes from OPEN to WPA2[0m
+[0;32mI (593) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10[0m
+[0;32mI (638) wifi:mode : sta (98:3d:ae:9d:b0:58)[0m
+[0;32mI (638) wifi:enable tsf[0m
+[0;32mI (640) wifi_manager: Connecting to MM-Devices...[0m
+[0;32mI (649) wifi:new:<1,0>, old:<1,0>, ap:<255,255>, sta:<1,0>, prof:1, snd_ch_cfg:0x0[0m
+[0;32mI (650) wifi:state: init -> auth (0xb0)[0m
+[0;32mI (665) wifi:state: auth -> assoc (0x0)[0m
+[0;32mI (695) wifi:state: assoc -> run (0x10)[0m
+[0;32mI (751) wifi:connected with MM-Devices, aid = 1, channel 1, BW20, bssid = 66:22:32:14:c3:3e[0m
+[0;32mI (751) wifi:security: WPA2-PSK, phy: bgn, rssi: -58[0m
+[0;32mI (755) wifi:pm start, type: 1[0m
+
+[0;32mI (756) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us[0m
+[0;32mI (764) wifi:set rx beacon pti, rx_bcn_pti: 0, bcn_timeout: 25000, mt_pti: 0, mt_time: 10000[0m
+[0;32mI (791) wifi:AP's beacon interval = 102400 us, DTIM period = 1[0m
+[0;32mI (841) wifi:<ba-add>idx:0 (ifx:0, 66:22:32:14:c3:3e), tid:0, ssn:0, winSize:64[0m
+[0;32mI (2039) esp_netif_handlers: sta ip: 172.16.168.190, mask: 255.255.254.0, gw: 172.16.169.254[0m
+[0;32mI (2040) wifi_manager: Connected! IP: 172.16.168.190[0m
+[0;32mI (2041) begin(): Using GPIO 2 for R1_PIN[0m
+[0;32mI (2045) begin(): Using GPIO 15 for G1_PIN[0m
+[0;32mI (2049) begin(): Using GPIO 4 for B1_PIN[0m
+[0;32mI (2052) begin(): Using GPIO 5 for R2_PIN[0m
+[0;32mI (2056) begin(): Using GPIO 6 for G2_PIN[0m
+[0;32mI (2060) begin(): Using GPIO 7 for B2_PIN[0m
+[0;32mI (2064) begin(): Using GPIO 8 for A_PIN[0m
+[0;32mI (2067) begin(): Using GPIO 9 for B_PIN[0m
+[0;32mI (2071) begin(): Using GPIO 10 for C_PIN[0m
+[0;32mI (2075) begin(): Using GPIO 11 for D_PIN[0m
+[0;32mI (2078) begin(): Using GPIO -1 for E_PIN[0m
+[0;32mI (2082) begin(): Using GPIO 13 for LAT_PIN[0m
+[0;32mI (2086) begin(): Using GPIO 14 for OE_PIN[0m
+[0;32mI (2090) begin(): Using GPIO 12 for CLK_PIN[0m
+[0;32mI (2094) begin(): HUB75 effective display resolution of width: 64px height: 32px.[0m
+[0;32mI (2101) I2S-DMA: Free heap: 272092[0m
+[0;32mI (2104) I2S-DMA: Free SPIRAM: 0[0m
+[0;32mI (2107) I2S-DMA: Allocating 16384 bytes memory for DMA BCM framebuffer(s).[0m
+[0;32mI (2114) I2S-DMA: Minimum visual refresh rate (scan rate from panel top to bottom) requested: 60 Hz[0m
+[0;33mW (2123) I2S-DMA: lsbMsbTransitionBit of 0 gives 57 Hz refresh rate.[0m
+[0;33mW (2129) I2S-DMA: lsbMsbTransitionBit of 1 gives 110 Hz refresh rate.[0m
+[0;33mW (2135) I2S-DMA: lsbMsbTransitionBit of 1 used to achieve refresh rate of 60 Hz. Percieved colour depth to the eye may be reduced.[0m
+[0;32mI (2146) I2S-DMA: DMA frame buffer color depths: 8[0m
+[0;32mI (2152) I2S-DMA: Created 1024 DMA descriptors for buffer 0.[0m
+[0;32mI (2156) I2S-DMA: DMA setup completed[0m
+[0;32mI (2163) S3: Clock divider is 16[0m
+[0;32mI (2166) display: Display initialized (64x32, 1/16 scan)[0m
+[0;32mI (2168) main: WiFi connected[0m
+[0;32mI (4172) main: Initializing SNTP...[0m
+[0;32mI (4628) wifi:<ba-add>idx:1 (ifx:0, 66:22:32:14:c3:3e), tid:6, ssn:2, winSize:64[0m
+[0;33mW (4673) main: SNTP sync timed out, will retry in background[0m
+[0;32mI (4679) main_task: Returned from app_main()[0m
+[0;32mI (5640) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (7283) flight_api: API response: 3222 bytes (buffer capacity: 32768)[0m
+[0;32mI (7283) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (7298) flight_api: API returned 26 total state vectors[0m
+[0;32mI (7299) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (7300) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (7304) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (7309) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (7314) flight_api:   GND: GREENROM (Australia) alt=0m[0m
+[0;32mI (7319) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (7323) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (7328) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (7332) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (7337) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (7341) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (7346) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (7351) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (7356) flight_api:   GND: QLK449D (Australia) alt=0m[0m
+[0;32mI (7361) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (7365) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (7370) flight_api:   GND: ALK607 (Sri Lanka) alt=0m[0m
+[0;32mI (7375) flight_api: Result: 17 flights, 3 skipped (no callsign)[0m
+[0;32mI (7381) flight_api:   [0]   (Australia) alt=0m spd=1m/s hdg=278°[0m
+[0;32mI (7386) flight_api:   [1] QFA180 (Australia) alt=0m spd=0m/s hdg=256°[0m
+[0;32mI (7393) flight_api:   [2] QFA452 (Australia) alt=0m spd=0m/s hdg=104°[0m
+[0;32mI (7399) flight_api:   [3] CAR40 (Australia) alt=0m spd=5m/s hdg=262°[0m
+[0;32mI (7405) flight_api:   [4] GREENROM (Australia) alt=0m spd=2m/s hdg=20°[0m
+[0;32mI (7412) flight_api:   [5]   (Australia) alt=0m spd=6m/s hdg=250°[0m
+[0;32mI (7418) flight_api:   [6] CAR21 (Australia) alt=0m spd=3m/s hdg=76°[0m
+[0;32mI (7424) flight_api:   [7]   (Australia) alt=0m spd=14m/s hdg=253°[0m
+[0;32mI (7430) flight_api:   [8]   (Australia) alt=0m spd=2m/s hdg=354°[0m
+[0;32mI (7436) flight_api:   [9] JST608 (Australia) alt=0m spd=59m/s hdg=169°[0m
+[0;32mI (7442) flight_api:   [10] JST764 (Australia) alt=0m spd=0m/s hdg=174°[0m
+[0;32mI (7449) flight_api:   [11] RXA6673 (Australia) alt=0m spd=0m/s hdg=222°[0m
+[0;32mI (7455) flight_api:   [12] VOZ851 (Australia) alt=0m spd=7m/s hdg=20°[0m
+[0;32mI (7462) flight_api:   [13] QLK449D (Australia) alt=0m spd=6m/s hdg=346°[0m
+[0;32mI (7468) flight_api:   [14] QFA459 (Australia) alt=0m spd=5m/s hdg=169°[0m
+[0;32mI (7474) flight_api:   [15] QFA596 (Australia) alt=0m spd=2m/s hdg=276°[0m
+[0;32mI (7481) flight_api:   [16] ALK607 (Sri Lanka) alt=0m spd=0m/s hdg=343°[0m
+[0;32mI (7490) main: Updated: 17 airborne flights[0m
+[0;32mI (9680) display: Showing flight 1/17:   (Australia) 0ft 2kt[0m
+[0;32mI (14683) display: Showing flight 2/17: QFA180 (Australia) 0ft 0kt[0m
+[0;32mI (19685) display: Showing flight 3/17: QFA452 (Australia) 0ft 0kt[0m
+[0;32mI (24687) display: Showing flight 4/17: CAR40 (Australia) 0ft 9kt[0m
+[0;32mI (29689) display: Showing flight 5/17: GREENROM (Australia) 0ft 4kt[0m
+[0;32mI (34691) display: Showing flight 6/17:   (Australia) 0ft 11kt[0m
+[0;32mI (38430) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (39694) display: Showing flight 7/17: CAR21 (Australia) 0ft 6kt[0m
+[0;32mI (39949) flight_api: API response: 3110 bytes (buffer capacity: 32768)[0m
+[0;32mI (39950) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (39965) flight_api: API returned 25 total state vectors[0m
+[0;32mI (39965) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (39966) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (39971) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (39976) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (39981) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (39985) flight_api:   GND: GREENROM (Australia) alt=0m[0m
+[0;32mI (39990) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (39995) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (40000) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (40004) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (40008) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (40013) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (40018) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (40023) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (40028) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (40032) flight_api:   GND: QLK449D (Australia) alt=0m[0m
+[0;32mI (40037) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (40042) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (40047) flight_api: Result: 18 flights, 2 skipped (no callsign)[0m
+[0;32mI (40053) flight_api:   [0]   (Australia) alt=0m spd=1m/s hdg=278°[0m
+[0;32mI (40059) flight_api:   [1] QFA180 (Australia) alt=0m spd=4m/s hdg=256°[0m
+[0;32mI (40065) flight_api:   [2] QFA452 (Australia) alt=0m spd=0m/s hdg=104°[0m
+[0;32mI (40072) flight_api:   [3]   (Australia) alt=0m spd=10m/s hdg=253°[0m
+[0;32mI (40078) flight_api:   [4] CAR40 (Australia) alt=0m spd=5m/s hdg=262°[0m
+[0;32mI (40084) flight_api:   [5] GREENROM (Australia) alt=0m spd=1m/s hdg=129°[0m
+[0;32mI (40091) flight_api:   [6]   (Australia) alt=0m spd=5m/s hdg=259°[0m
+[0;32mI (40097) flight_api:   [7] CAR21 (Australia) alt=0m spd=3m/s hdg=76°[0m
+[0;32mI (40103) flight_api:   [8]   (Australia) alt=0m spd=13m/s hdg=253°[0m
+[0;32mI (40109) flight_api:   [9]   (Australia) alt=0m spd=8m/s hdg=315°[0m
+[0;32mI (40115) flight_api:   [10]   (Australia) alt=0m spd=2m/s hdg=354°[0m
+[0;32mI (40121) flight_api:   [11] JST608 (Australia) alt=0m spd=12m/s hdg=141°[0m
+[0;32mI (40128) flight_api:   [12] JST764 (Australia) alt=0m spd=0m/s hdg=174°[0m
+[0;32mI (40134) flight_api:   [13] RXA6673 (Australia) alt=0m spd=0m/s hdg=183°[0m
+[0;32mI (40141) flight_api:   [14] VOZ851 (Australia) alt=0m spd=7m/s hdg=256°[0m
+[0;32mI (40147) flight_api:   [15] QLK449D (Australia) alt=0m spd=5m/s hdg=295°[0m
+[0;32mI (40154) flight_api:   [16] QFA459 (Australia) alt=0m spd=5m/s hdg=262°[0m
+[0;32mI (40160) flight_api:   [17] QFA596 (Australia) alt=0m spd=1m/s hdg=278°[0m
+[0;32mI (40169) main: Updated: 18 airborne flights[0m
+[0;32mI (44697) display: Showing flight 8/18: CAR21 (Australia) 0ft 6kt[0m
+[0;32mI (49698) display: Showing flight 9/18:   (Australia) 0ft 25kt[0m
+[0;32mI (54700) display: Showing flight 10/18:   (Australia) 0ft 16kt[0m
+[0;32mI (59702) display: Showing flight 11/18:   (Australia) 0ft 3kt[0m
+[0;32mI (64705) display: Showing flight 12/18: JST608 (Australia) 0ft 24kt[0m
+[0;32mI (69707) display: Showing flight 13/18: JST764 (Australia) 0ft 0kt[0m
+[0;32mI (71118) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (72620) flight_api: API response: 2869 bytes (buffer capacity: 32768)[0m
+[0;32mI (72620) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (72635) flight_api: API returned 23 total state vectors[0m
+[0;32mI (72635) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (72637) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (72642) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (72647) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (72651) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (72656) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (72660) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (72665) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (72670) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (72674) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (72678) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (72683) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (72688) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (72693) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (72698) flight_api:   GND: QLK449D (Australia) alt=0m[0m
+[0;32mI (72703) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (72708) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (72713) flight_api:   GND: ALK607 (Sri Lanka) alt=0m[0m
+[0;32mI (72717) flight_api:   GND: CAR15 (Australia) alt=0m[0m
+[0;32mI (72722) flight_api: Result: 19 flights, 1 skipped (no callsign)[0m
+[0;32mI (72728) flight_api:   [0]   (Australia) alt=0m spd=1m/s hdg=278°[0m
+[0;32mI (72734) flight_api:   [1] QFA180 (Australia) alt=0m spd=8m/s hdg=253°[0m
+[0;32mI (72740) flight_api:   [2] QFA452 (Australia) alt=0m spd=0m/s hdg=104°[0m
+[0;32mI (72747) flight_api:   [3]   (Australia) alt=0m spd=9m/s hdg=253°[0m
+[0;32mI (72753) flight_api:   [4] CAR40 (Australia) alt=0m spd=4m/s hdg=56°[0m
+[0;32mI (72759) flight_api:   [5]   (Australia) alt=0m spd=5m/s hdg=259°[0m
+[0;32mI (72765) flight_api:   [6] CAR21 (Australia) alt=0m spd=3m/s hdg=267°[0m
+[0;32mI (72771) flight_api:   [7]   (Australia) alt=0m spd=9m/s hdg=349°[0m
+[0;32mI (72777) flight_api:   [8]   (Australia) alt=0m spd=8m/s hdg=309°[0m
+[0;32mI (72783) flight_api:   [9]   (Australia) alt=0m spd=2m/s hdg=354°[0m
+[0;32mI (72789) flight_api:   [10] JST608 (Australia) alt=0m spd=7m/s hdg=346°[0m
+[0;32mI (72796) flight_api:   [11] JST764 (Australia) alt=0m spd=2m/s hdg=202°[0m
+[0;32mI (72802) flight_api:   [12] RXA6673 (Australia) alt=0m spd=0m/s hdg=301°[0m
+[0;32mI (72809) flight_api:   [13] VOZ851 (Australia) alt=0m spd=5m/s hdg=354°[0m
+[0;32mI (72816) flight_api:   [14] QLK449D (Australia) alt=0m spd=6m/s hdg=202°[0m
+[0;32mI (72822) flight_api:   [15] QFA459 (Australia) alt=0m spd=5m/s hdg=349°[0m
+[0;32mI (72829) flight_api:   [16] QFA596 (Australia) alt=0m spd=0m/s hdg=278°[0m
+[0;32mI (72835) flight_api:   [17] ALK607 (Sri Lanka) alt=0m spd=0m/s hdg=343°[0m
+[0;32mI (72842) flight_api:   [18] CAR15 (Australia) alt=0m spd=8m/s hdg=276°[0m
+[0;32mI (72850) main: Updated: 19 airborne flights[0m
+[0;32mI (74709) display: Showing flight 14/19: VOZ851 (Australia) 0ft 10kt[0m
+[0;32mI (79711) display: Showing flight 15/19: QLK449D (Australia) 0ft 12kt[0m
+[0;32mI (84713) display: Showing flight 16/19: QFA459 (Australia) 0ft 10kt[0m
+[0;32mI (89715) display: Showing flight 17/19: QFA596 (Australia) 0ft 0kt[0m
+[0;32mI (94717) display: Showing flight 18/19: ALK607 (Sri Lanka) 0ft 0kt[0m
+[0;32mI (99719) display: Showing flight 19/19: CAR15 (Australia) 0ft 16kt[0m
+[0;32mI (103845) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (104720) display: Showing flight 1/19:   (Australia) 0ft 2kt[0m
+[0;32mI (105486) flight_api: API response: 2867 bytes (buffer capacity: 32768)[0m
+[0;32mI (105487) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (105501) flight_api: API returned 23 total state vectors[0m
+[0;32mI (105502) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (105504) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (105509) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (105514) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (105518) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (105523) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (105528) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (105532) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (105537) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (105541) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (105546) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (105551) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (105556) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (105561) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (105566) flight_api:   AIR: QLK449D (Australia) alt=-8m[0m
+[0;32mI (105571) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (105576) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (105581) flight_api:   GND: ALK607 (Sri Lanka) alt=0m[0m
+[0;32mI (105586) flight_api:   GND: CAR15 (Australia) alt=0m[0m
+[0;32mI (105591) flight_api: Result: 19 flights, 1 skipped (no callsign)[0m
+[0;32mI (105597) flight_api:   [0] QFA180 (Australia) alt=0m spd=4m/s hdg=346°[0m
+[0;32mI (105603) flight_api:   [1] QFA452 (Australia) alt=0m spd=0m/s hdg=104°[0m
+[0;32mI (105610) flight_api:   [2]   (Australia) alt=0m spd=2m/s hdg=42°[0m
+[0;32mI (105616) flight_api:   [3]   (Australia) alt=0m spd=5m/s hdg=253°[0m
+[0;32mI (105622) flight_api:   [4] CAR40 (Australia) alt=0m spd=4m/s hdg=56°[0m
+[0;32mI (105628) flight_api:   [5]   (Australia) alt=0m spd=5m/s hdg=259°[0m
+[0;32mI (105634) flight_api:   [6] CAR21 (Australia) alt=0m spd=0m/s hdg=233°[0m
+[0;32mI (105640) flight_api:   [7]   (Australia) alt=0m spd=12m/s hdg=354°[0m
+[0;32mI (105647) flight_api:   [8]   (Australia) alt=0m spd=8m/s hdg=256°[0m
+[0;32mI (105653) flight_api:   [9]   (Australia) alt=0m spd=2m/s hdg=188°[0m
+[0;32mI (105659) flight_api:   [10] JST608 (Australia) alt=0m spd=12m/s hdg=346°[0m
+[0;32mI (105666) flight_api:   [11] JST764 (Australia) alt=0m spd=5m/s hdg=354°[0m
+[0;32mI (105672) flight_api:   [12] RXA6673 (Australia) alt=0m spd=0m/s hdg=253°[0m
+[0;32mI (105679) flight_api:   [13] VOZ851 (Australia) alt=0m spd=3m/s hdg=278°[0m
+[0;32mI (105685) flight_api:   [14] QLK449D (Australia) alt=-8m spd=83m/s hdg=168°[0m
+[0;32mI (105692) flight_api:   [15] QFA459 (Australia) alt=0m spd=8m/s hdg=349°[0m
+[0;32mI (105699) flight_api:   [16] QFA596 (Australia) alt=0m spd=0m/s hdg=278°[0m
+[0;32mI (105705) flight_api:   [17] ALK607 (Sri Lanka) alt=0m spd=0m/s hdg=343°[0m
+[0;32mI (105712) flight_api:   [18] CAR15 (Australia) alt=0m spd=7m/s hdg=253°[0m
+[0;32mI (105721) main: Updated: 19 airborne flights[0m
+[0;32mI (109723) display: Showing flight 2/19: QFA452 (Australia) 0ft 0kt[0m
+[0;32mI (114724) display: Showing flight 3/19:   (Australia) 0ft 4kt[0m
+[0;32mI (119726) display: Showing flight 4/19:   (Australia) 0ft 10kt[0m
+[0;32mI (124729) display: Showing flight 5/19: CAR40 (Australia) 0ft 7kt[0m
+[0;32mI (129731) display: Showing flight 6/19:   (Australia) 0ft 10kt[0m
+[0;32mI (134733) display: Showing flight 7/19: CAR21 (Australia) 0ft 0kt[0m
+[0;32mI (136614) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (138206) flight_api: API response: 2619 bytes (buffer capacity: 32768)[0m
+[0;32mI (138207) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (138221) flight_api: API returned 21 total state vectors[0m
+[0;32mI (138221) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (138224) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (138229) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (138234) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (138238) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (138243) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (138247) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (138252) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (138257) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (138261) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (138266) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (138271) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (138276) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (138281) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (138286) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (138291) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (138296) flight_api:   GND: ALK607 (Sri Lanka) alt=0m[0m
+[0;32mI (138301) flight_api:   GND: VOZ957 (Australia) alt=0m[0m
+[0;32mI (138306) flight_api:   AIR: QFA646 (Australia) alt=-76m[0m
+[0;32mI (138311) flight_api: Result: 19 flights, 1 skipped (no callsign)[0m
+[0;32mI (138317) flight_api:   [0] QFA180 (Australia) alt=0m spd=2m/s hdg=253°[0m
+[0;32mI (138323) flight_api:   [1] QFA452 (Australia) alt=0m spd=0m/s hdg=104°[0m
+[0;32mI (138330) flight_api:   [2]   (Australia) alt=0m spd=2m/s hdg=42°[0m
+[0;32mI (138336) flight_api:   [3]   (Australia) alt=0m spd=3m/s hdg=256°[0m
+[0;32mI (138342) flight_api:   [4] CAR40 (Australia) alt=0m spd=4m/s hdg=56°[0m
+[0;32mI (138348) flight_api:   [5]   (Australia) alt=0m spd=5m/s hdg=259°[0m
+[0;32mI (138354) flight_api:   [6] CAR21 (Australia) alt=0m spd=0m/s hdg=233°[0m
+[0;32mI (138361) flight_api:   [7]   (Australia) alt=0m spd=11m/s hdg=346°[0m
+[0;32mI (138367) flight_api:   [8]   (Australia) alt=0m spd=8m/s hdg=231°[0m
+[0;32mI (138373) flight_api:   [9]   (Australia) alt=0m spd=2m/s hdg=188°[0m
+[0;32mI (138379) flight_api:   [10] JST608 (Australia) alt=0m spd=10m/s hdg=349°[0m
+[0;32mI (138386) flight_api:   [11] JST764 (Australia) alt=0m spd=7m/s hdg=349°[0m
+[0;32mI (138392) flight_api:   [12] RXA6673 (Australia) alt=0m spd=0m/s hdg=270°[0m
+[0;32mI (138399) flight_api:   [13] VOZ851 (Australia) alt=0m spd=3m/s hdg=278°[0m
+[0;32mI (138405) flight_api:   [14] QFA459 (Australia) alt=0m spd=5m/s hdg=287°[0m
+[0;32mI (138412) flight_api:   [15] QFA596 (Australia) alt=0m spd=0m/s hdg=278°[0m
+[0;32mI (138419) flight_api:   [16] ALK607 (Sri Lanka) alt=0m spd=0m/s hdg=343°[0m
+[0;32mI (138425) flight_api:   [17] VOZ957 (Australia) alt=0m spd=7m/s hdg=191°[0m
+[0;32mI (138432) flight_api:   [18] QFA646 (Australia) alt=-76m spd=70m/s hdg=168°[0m
+[0;32mI (138441) main: Updated: 19 airborne flights[0m
+[0;32mI (139734) display: Showing flight 8/19:   (Australia) 0ft 21kt[0m
+[0;32mI (144736) display: Showing flight 9/19:   (Australia) 0ft 16kt[0m
+[0;32mI (149738) display: Showing flight 10/19:   (Australia) 0ft 4kt[0m
+[0;32mI (154741) display: Showing flight 11/19: JST608 (Australia) 0ft 20kt[0m
+[0;32mI (159743) display: Showing flight 12/19: JST764 (Australia) 0ft 14kt[0m
+[0;32mI (164745) display: Showing flight 13/19: RXA6673 (Australia) 0ft 0kt[0m
+[0;32mI (169388) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (169748) display: Showing flight 14/19: VOZ851 (Australia) 0ft 6kt[0m
+[0;32mI (171051) flight_api: API response: 2977 bytes (buffer capacity: 32768)[0m
+[0;32mI (171052) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (171067) flight_api: API returned 24 total state vectors[0m
+[0;32mI (171067) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (171069) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (171074) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (171079) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (171083) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (171088) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (171093) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (171098) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (171102) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (171107) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (171111) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (171116) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (171121) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (171126) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (171131) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (171136) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (171141) flight_api:   GND: ALK607 (Sri Lanka) alt=0m[0m
+[0;32mI (171146) flight_api:   GND: CAR15 (Australia) alt=0m[0m
+[0;32mI (171151) flight_api: Result: 18 flights, 2 skipped (no callsign)[0m
+[0;32mI (171157) flight_api:   [0] QFA180 (Australia) alt=0m spd=0m/s hdg=253°[0m
+[0;32mI (171163) flight_api:   [1] QFA452 (Australia) alt=0m spd=0m/s hdg=104°[0m
+[0;32mI (171170) flight_api:   [2]   (Australia) alt=0m spd=2m/s hdg=42°[0m
+[0;32mI (171176) flight_api:   [3]   (Australia) alt=0m spd=3m/s hdg=256°[0m
+[0;32mI (171182) flight_api:   [4] CAR40 (Australia) alt=0m spd=4m/s hdg=56°[0m
+[0;32mI (171188) flight_api:   [5]   (Australia) alt=0m spd=5m/s hdg=259°[0m
+[0;32mI (171194) flight_api:   [6] CAR21 (Australia) alt=0m spd=5m/s hdg=183°[0m
+[0;32mI (171201) flight_api:   [7]   (Australia) alt=0m spd=9m/s hdg=346°[0m
+[0;32mI (171207) flight_api:   [8]   (Australia) alt=0m spd=8m/s hdg=169°[0m
+[0;32mI (171213) flight_api:   [9]   (Australia) alt=0m spd=5m/s hdg=68°[0m
+[0;32mI (171219) flight_api:   [10] JST608 (Australia) alt=0m spd=5m/s hdg=349°[0m
+[0;32mI (171225) flight_api:   [11] JST764 (Australia) alt=0m spd=5m/s hdg=335°[0m
+[0;32mI (171232) flight_api:   [12] RXA6673 (Australia) alt=0m spd=0m/s hdg=270°[0m
+[0;32mI (171239) flight_api:   [13] VOZ851 (Australia) alt=0m spd=3m/s hdg=278°[0m
+[0;32mI (171245) flight_api:   [14] QFA459 (Australia) alt=0m spd=0m/s hdg=259°[0m
+[0;32mI (171252) flight_api:   [15] QFA596 (Australia) alt=0m spd=0m/s hdg=278°[0m
+[0;32mI (171258) flight_api:   [16] ALK607 (Sri Lanka) alt=0m spd=0m/s hdg=343°[0m
+[0;32mI (171265) flight_api:   [17] CAR15 (Australia) alt=0m spd=8m/s hdg=76°[0m
+[0;32mI (171274) main: Updated: 18 airborne flights[0m
+[0;32mI (174750) display: Showing flight 15/18: QFA459 (Australia) 0ft 0kt[0m
+[0;32mI (179752) display: Showing flight 16/18: QFA596 (Australia) 0ft 0kt[0m
+[0;32mI (184754) display: Showing flight 17/18: ALK607 (Sri Lanka) 0ft 0kt[0m
+[0;32mI (189756) display: Showing flight 18/18: CAR15 (Australia) 0ft 15kt[0m
+[0;32mI (194758) display: Showing flight 1/18: QFA180 (Australia) 0ft 0kt[0m
+[0;32mI (199760) display: Showing flight 2/18: QFA452 (Australia) 0ft 0kt[0m
+[0;32mI (202175) esp-x509-crt-bundle: Certificate validated[0m
+[0;32mI (204761) display: Showing flight 3/18:   (Australia) 0ft 4kt[0m
+[0;32mI (205419) flight_api: API response: 2976 bytes (buffer capacity: 32768)[0m
+[0;32mI (205420) flight_api: Request URL: https://opensky-network.org/api/states/all?lamin=-33.9558&lomin=151.1527&lamax=-33.9192&lomax=151.2043[0m
+[0;32mI (205435) flight_api: API returned 24 total state vectors[0m
+[0;32mI (205435) flight_api:   GND: QFA180 (Australia) alt=0m[0m
+[0;32mI (205437) flight_api:   GND: QFA452 (Australia) alt=0m[0m
+[0;32mI (205442) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (205447) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (205451) flight_api:   GND: CAR40 (Australia) alt=0m[0m
+[0;32mI (205456) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (205461) flight_api:   GND: CAR21 (Australia) alt=0m[0m
+[0;32mI (205465) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (205470) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (205475) flight_api:   GND:   (Australia) alt=0m[0m
+[0;32mI (205479) flight_api:   GND: JST608 (Australia) alt=0m[0m
+[0;32mI (205484) flight_api:   GND: JST764 (Australia) alt=0m[0m
+[0;32mI (205489) flight_api:   GND: RXA6673 (Australia) alt=0m[0m
+[0;32mI (205494) flight_api:   GND: VOZ851 (Australia) alt=0m[0m
+[0;32mI (205499) flight_api:   GND: QFA459 (Australia) alt=0m[0m
+[0;32mI (205504) flight_api:   GND: QFA596 (Australia) alt=0m[0m
+[0;32mI (205509) flight_api:   GND: ALK607 (Sri Lanka) alt=0m[0m
+[0;32mI (205514) flight_api:   GND: CAR15 (Australia) alt=0m[0m
+[0;32mI (205519) flight_api: Result: 18 flights, 2 skipped (no callsign)[0m
+[0;32mI (205525) flight_api:   [0] QFA180 (Australia) alt=0m spd=0m/s hdg=253°[0m
+[0;32mI (205531) flight_api:   [1] QFA452 (Australia) alt=0m spd=1m/s hdg=188°[0m
+[0;32mI (205538) flight_api:   [2]   (Australia) alt=0m spd=2m/s hdg=42°[0m
+[0;32mI (205544) flight_api:   [3]   (Australia) alt=0m spd=3m/s hdg=256°[0m
+[0;32mI (205550) flight_api:   [4] CAR40 (Australia) alt=0m spd=4m/s hdg=56°[0m
+[0;32mI (205556) flight_api:   [5]   (Australia) alt=0m spd=5m/s hdg=259°[0m
+[0;32mI (205562) flight_api:   [6] CAR21 (Australia) alt=0m spd=5m/s hdg=183°[0m
+[0;32mI (205568) flight_api:   [7]   (Australia) alt=0m spd=9m/s hdg=346°[0m
+[0;32mI (205575) flight_api:   [8]   (Australia) alt=0m spd=8m/s hdg=143°[0m
+[0;32mI (205581) flight_api:   [9]   (Australia) alt=0m spd=3m/s hdg=166°[0m
+[0;32mI (205587) flight_api:   [10] JST608 (Australia) alt=0m spd=4m/s hdg=98°[0m
+[0;32mI (205593) flight_api:   [11] JST764 (Australia) alt=0m spd=0m/s hdg=281°[0m
+[0;32mI (205600) flight_api:   [12] RXA6673 (Australia) alt=0m spd=0m/s hdg=270°[0m
+[0;32mI (205606) flight_api:   [13] VOZ851 (Australia) alt=0m spd=3m/s hdg=278°[0m
+[0;32mI (205613) flight_api:   [14] QFA459 (Australia) alt=0m spd=0m/s hdg=259°[0m
+[0;32mI (205620) flight_api:   [15] QFA596 (Australia) alt=0m spd=3m/s hdg=281°[0m
+[0;32mI (205626) flight_api:   [16] ALK607 (Sri Lanka) alt=0m spd=0m/s hdg=343°[0m
+[0;32mI (205633) flight_api:   [17] CAR15 (Australia) alt=0m spd=7m/s hdg=34°[0m
+[0;32mI (205642) main: Updated: 18 airborne flights[0m
+[0;32mI (209763) display: Showing flight 4/18:   (Australia) 0ft 6kt[0m
+[0;32mI (214766) display: Showing flight 5/18: CAR40 (Australia) 0ft 7kt[0m
+[0;32mI (219767) display: Showing flight 6/18:   (Australia) 0ft 10kt[0m
+[0;32mI (224770) display: Showing flight 7/18: CAR21 (Australia) 0ft 10kt[0m

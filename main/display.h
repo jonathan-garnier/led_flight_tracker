@@ -1,0 +1,30 @@
+#pragma once
+
+#include "flight_api.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Initialize Arduino HAL - must be called before nvs_flash_init()
+void display_arduino_init(void);
+
+// Initialize the HUB75 DMA display - call AFTER WiFi init
+void display_init(void);
+
+// Show a test pattern (RGB color bands) to verify wiring
+void display_test_pattern(void);
+
+// Show a single flight's info on the display
+// index: current flight index (0-based), total: total number of flights
+void display_show_flight(const flight_t *flight, int index, int total);
+
+// Show "No flights" message
+void display_show_no_flights(void);
+
+// Show a status message (e.g. "Connecting WiFi...", "AP Mode")
+void display_show_status(const char *line1, const char *line2);
+
+#ifdef __cplusplus
+}
+#endif

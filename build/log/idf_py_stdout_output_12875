@@ -1,0 +1,74 @@
+[1/5] cd /home/jono/repos/led_flight_tracker/build/esp-idf/esptool_py && /home/jono/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/jono/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/jono/repos/led_flight_tracker/build/partition_table/partition-table.bin /home/jono/repos/led_flight_tracker/build/led_flight_tracker.bin
+led_flight_tracker.bin binary size 0xcf4f0 bytes. Smallest app partition is 0x177000 bytes. 0xa7b10 bytes (45%) free.
+[2/5] Performing build step for 'bootloader'
+[1/1] cd /home/jono/repos/led_flight_tracker/build/bootloader/esp-idf/esptool_py && /home/jono/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/jono/esp/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/jono/repos/led_flight_tracker/build/bootloader/bootloader.bin
+Bootloader binary size 0x51c0 bytes. 0x2e40 bytes (36%) free.
+[3/5] No install step for 'bootloader'
+[4/5] Completed 'bootloader'
+[4/5] cd /home/jono/esp/esp-idf/components/esptool_py && /usr/bin/cmake -D IDF_PATH=/home/jono/esp/esp-idf -D "SERIAL_TOOL=/home/jono/.espressif/python_env/idf5.4_py3.12_env/bin/python;;/home/jono/esp/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/home/jono/repos/led_flight_tracker/build -P /home/jono/esp/esp-idf/components/esptool_py/run_serial_tool.cmake
+esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 bootloader/bootloader.bin 0x10000 led_flight_tracker.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.11.0
+Serial port /dev/ttyACM0
+Connecting...
+Chip is ESP32-S3 (QFN56) (revision v0.2)
+Features: WiFi, BLE, Embedded PSRAM 2MB (AP_3v3)
+Crystal is 40MHz
+USB mode: USB-Serial/JTAG
+MAC: 98:3d:ae:9d:b0:58
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x000dffff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 20928 bytes to 13317...
+Writing at 0x00000000... (100 %)
+Wrote 20928 bytes (13317 compressed) at 0x00000000 in 0.4 seconds (effective 409.4 kbit/s)...
+Hash of data verified.
+Compressed 849136 bytes to 530734...
+Writing at 0x00010000... (3 %)
+Writing at 0x0001c803... (6 %)
+Writing at 0x0002655e... (9 %)
+Writing at 0x00030548... (12 %)
+Writing at 0x000368e8... (15 %)
+Writing at 0x0003cf79... (18 %)
+Writing at 0x00043389... (21 %)
+Writing at 0x00049322... (24 %)
+Writing at 0x0004f303... (27 %)
+Writing at 0x00054f7a... (30 %)
+Writing at 0x0005aac3... (33 %)
+Writing at 0x0005fc48... (36 %)
+Writing at 0x00065261... (39 %)
+Writing at 0x0006a9f4... (42 %)
+Writing at 0x0006feb3... (45 %)
+Writing at 0x00075283... (48 %)
+Writing at 0x0007a936... (51 %)
+Writing at 0x00080a28... (54 %)
+Writing at 0x00086287... (57 %)
+Writing at 0x0008bf1d... (60 %)
+Writing at 0x00091d4b... (63 %)
+Writing at 0x00097cbe... (66 %)
+Writing at 0x0009d7d4... (69 %)
+Writing at 0x000a353b... (72 %)
+Writing at 0x000a982f... (75 %)
+Writing at 0x000aef92... (78 %)
+Writing at 0x000b43c5... (81 %)
+Writing at 0x000bd125... (84 %)
+Writing at 0x000c30ec... (87 %)
+Writing at 0x000cb39e... (90 %)
+Writing at 0x000d1451... (93 %)
+Writing at 0x000d7bf3... (96 %)
+Writing at 0x000dcc38... (100 %)
+Wrote 849136 bytes (530734 compressed) at 0x00010000 in 7.1 seconds (effective 963.1 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 105...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (105 compressed) at 0x00008000 in 0.1 seconds (effective 394.6 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
