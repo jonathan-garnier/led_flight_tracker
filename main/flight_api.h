@@ -21,9 +21,15 @@ typedef struct {
     int count;
 } flight_data_t;
 
-// Set OpenSky credentials for authenticated requests (more API credits).
-// Pass NULL/empty strings for anonymous access.
-void flight_api_set_credentials(const char *username, const char *password);
+// Set OpenSky OAuth2 client credentials for authenticated requests.
+// These are used to obtain a Bearer token from OpenSky's auth server.
+void flight_api_set_oauth_credentials(const char *client_id, const char *client_secret);
+
+// Validate OAuth2 credentials by obtaining a token and making a test API call.
+// Returns ESP_OK if authenticated (x-rate-limit-remaining > 400).
+// Returns ESP_ERR_INVALID_ARG if credentials are rejected.
+// Returns ESP_FAIL on network or other errors.
+esp_err_t flight_api_validate_credentials(void);
 
 // Fetch flights within the given bounding box from OpenSky Network.
 // Results are written into `data`. Returns ESP_OK on success.

@@ -11,6 +11,8 @@
 #include "flight_api.h"
 #include "button.h"
 #include "display.h"
+#include "nvs_flash.h"
+#include "esp_wifi.h"
 
 static const char *TAG = "main";
 
@@ -163,7 +165,7 @@ void app_main(void)
         web_server_start();
         // Start display after WiFi in AP mode too
         display_init();
-        display_show_status("Config Mode", "FlightTracker");
+        display_show_config_mode();  // blocks forever with scrolling animation
         return;
     }
 
@@ -171,9 +173,9 @@ void app_main(void)
     static device_config_t config;
     config_storage_load(&config);
 
-    // Set OpenSky credentials if configured
-    if (config.api_username[0]) {
-        flight_api_set_credentials(config.api_username, config.api_password);
+    // Set OpenSky OAuth2 credentials if configured
+    if (config.api_client_id[0]) {
+        flight_api_set_oauth_credentials(config.api_client_id, config.api_client_secret);
     }
 
     ESP_LOGI(TAG, "Connecting to WiFi: %s", config.ssid);
@@ -195,7 +197,32 @@ void app_main(void)
     // Brief pause so user can see the connected message
     vTaskDelay(pdMS_TO_TICKS(2000));
 
-    // Step 5: Time sync
+    // Step 5: Validate OpenSky credentials
+    if (config.api_client_id[0]) {
+        display_show_status("Validating", "credentials...");
+        esp_err_t cred_err = flight_api_validate_credentials();
+        if (cred_err != ESP_OK) {
+            ESP_LOGE(TAG, "OpenSky credentials invalid - clearing config and restarting");
+            display_show_status("Bad OpenSky", "credentials!");
+            vTaskDelay(pdMS_TO_TICKS(3000));
+            // Stop WiFi cleanly before erasing config
+            esp_wifi_stop();
+            nvs_flash_erase();
+            esp_restart();
+            return;
+        }
+    } else {
+        ESP_LOGE(TAG, "No OpenSky credentials configured - clearing config");
+        display_show_status("No API keys", "configured!");
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        // Stop WiFi cleanly before erasing config
+        esp_wifi_stop();
+        nvs_flash_erase();
+        esp_restart();
+        return;
+    }
+
+    // Step 6: Time sync
     init_sntp();
 
     // Step 6: Start flight polling and display tasks

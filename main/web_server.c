@@ -31,11 +31,11 @@ static const char CONFIG_PAGE_HTML[] =
     "<input name='ssid' required maxlength='32'>"
     "<label>WiFi Password</label>"
     "<input name='password' type='password' required maxlength='64'>"
-    "<label>OpenSky Username</label>"
-    "<input name='api_user' required maxlength='64' placeholder='your@email.com'>"
-    "<label>OpenSky Password</label>"
-    "<input name='api_pass' type='password' required maxlength='64'>"
-    "<p class='info'>Free account at opensky-network.org (gives 4000 API credits/day).</p>"
+    "<label>OpenSky Client ID</label>"
+    "<input name='api_cid' required maxlength='64' placeholder='yourname-api-client'>"
+    "<label>OpenSky Client Secret</label>"
+    "<input name='api_csec' type='password' required maxlength='64'>"
+    "<p class='info'>Create a free account at opensky-network.org, then generate API client credentials in your account settings.</p>"
     "<label>GeoJSON Bounding Box</label>"
     "<textarea name='geojson' required placeholder='Paste GeoJSON from geojson.io here...'></textarea>"
     "<p class='info'>Go to geojson.io, draw a rectangle over your area, and paste the JSON output above.</p>"
@@ -52,7 +52,7 @@ static const char SUCCESS_HTML[] =
     "h1{color:#00ff88}"
     "</style></head><body>"
     "<h1>Configuration Saved!</h1>"
-    "<p>The device will now restart and connect to your WiFi network.</p>"
+    "<p>The device will now restart, connect to WiFi, and validate your OpenSky credentials.</p>"
     "<p>You can close this page.</p>"
     "</body></html>";
 
@@ -174,13 +174,13 @@ static esp_err_t config_post_handler(httpd_req_t *req)
 
     char *ssid = get_form_field(buf, "ssid");
     char *password = get_form_field(buf, "password");
-    char *api_user = get_form_field(buf, "api_user");
-    char *api_pass = get_form_field(buf, "api_pass");
+    char *api_cid = get_form_field(buf, "api_cid");
+    char *api_csec = get_form_field(buf, "api_csec");
     char *geojson = get_form_field(buf, "geojson");
 
-    if (!ssid || !password || !api_user || !api_pass || !geojson) {
+    if (!ssid || !password || !api_cid || !api_csec || !geojson) {
         ESP_LOGE(TAG, "Missing form fields");
-        free(ssid); free(password); free(api_user); free(api_pass); free(geojson); free(buf);
+        free(ssid); free(password); free(api_cid); free(api_csec); free(geojson); free(buf);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing fields");
         return ESP_FAIL;
     }
@@ -188,15 +188,15 @@ static esp_err_t config_post_handler(httpd_req_t *req)
     device_config_t config = {0};
     strncpy(config.ssid, ssid, MAX_SSID_LEN - 1);
     strncpy(config.password, password, MAX_PASS_LEN - 1);
-    strncpy(config.api_username, api_user, MAX_API_USER_LEN - 1);
-    strncpy(config.api_password, api_pass, MAX_API_PASS_LEN - 1);
+    strncpy(config.api_client_id, api_cid, MAX_API_CLIENT_ID_LEN - 1);
+    strncpy(config.api_client_secret, api_csec, MAX_API_CLIENT_SECRET_LEN - 1);
 
     bool bbox_ok = parse_geojson_bbox(geojson, &config.lamin, &config.lomin, &config.lamax, &config.lomax);
 
     free(ssid);
     free(password);
-    free(api_user);
-    free(api_pass);
+    free(api_cid);
+    free(api_csec);
     free(geojson);
     free(buf);
 
@@ -205,6 +205,7 @@ static esp_err_t config_post_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    // Save config and reboot - credentials will be validated on boot
     config_storage_save(&config);
 
     httpd_resp_set_type(req, "text/html");

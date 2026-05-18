@@ -29,6 +29,9 @@ void display_show_no_flights(void);
 // Show a status message (e.g. "Connecting WiFi...", "AP Mode")
 void display_show_status(const char *line1, const char *line2);
 
+// Show config mode screen with scrolling AP name (blocks forever)
+void display_show_config_mode(void);
+
 #ifdef __cplusplus
 }
 #endif

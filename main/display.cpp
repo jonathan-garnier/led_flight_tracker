@@ -243,6 +243,95 @@ void display_show_status(const char *line1, const char *line2)
     }
 }
 
+void display_show_config_mode(void)
+{
+    if (!dma_display) return;
+
+    uint16_t black  = dma_display->color565(0, 0, 0);
+    uint16_t cyan   = dma_display->color565(0, 255, 255);
+    uint16_t white  = dma_display->color565(255, 255, 255);
+
+    const char *line1 = "Join WiFi:";
+    const char *ap_name = "FlightTracker";
+    const int ap_name_pw = (int)strlen(ap_name) * 6;  // default font 6px/char
+    const int line2_y = 18;
+    const int scroll_range = ap_name_pw - 64;
+
+    dma_display->fillScreen(black);
+    dma_display->setFont(NULL);
+    dma_display->setTextSize(1);
+    dma_display->setTextWrap(false);
+
+    // Line 1: static
+    dma_display->setCursor(1, 4);
+    dma_display->setTextColor(cyan);
+    dma_display->print(line1);
+
+    if (scroll_range <= 0) {
+        // Fits - just center it
+        int x = (64 - ap_name_pw) / 2;
+        dma_display->setCursor(x, line2_y);
+        dma_display->setTextColor(white);
+        dma_display->print(ap_name);
+        while (1) { vTaskDelay(pdMS_TO_TICKS(1000)); }
+    }
+
+    // Scroll loop forever
+    while (1) {
+        int prev_x = 0;
+
+        // Draw at start position
+        dma_display->setFont(NULL);
+        dma_display->setTextSize(1);
+        dma_display->setTextColor(white);
+        dma_display->setCursor(prev_x, line2_y);
+        dma_display->print(ap_name);
+        vTaskDelay(pdMS_TO_TICKS(1500));
+
+        // Scroll left
+        int frame_ms = 30;
+        int scroll_ms = 4000;
+        int total_frames = scroll_ms / frame_ms;
+
+        for (int frame = 1; frame <= total_frames; frame++) {
+            int x = -(scroll_range * frame / total_frames);
+            if (x != prev_x) {
+                dma_display->setFont(NULL);
+                dma_display->setTextSize(1);
+                dma_display->setTextColor(black);
+                dma_display->setCursor(prev_x, line2_y);
+                dma_display->print(ap_name);
+                dma_display->setTextColor(white);
+                dma_display->setCursor(x, line2_y);
+                dma_display->print(ap_name);
+                prev_x = x;
+            }
+            vTaskDelay(pdMS_TO_TICKS(frame_ms));
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1500));
+
+        // Scroll back right
+        for (int frame = 1; frame <= total_frames; frame++) {
+            int x = -(scroll_range * (total_frames - frame) / total_frames);
+            if (x != prev_x) {
+                dma_display->setFont(NULL);
+                dma_display->setTextSize(1);
+                dma_display->setTextColor(black);
+                dma_display->setCursor(prev_x, line2_y);
+                dma_display->print(ap_name);
+                dma_display->setTextColor(white);
+                dma_display->setCursor(x, line2_y);
+                dma_display->print(ap_name);
+                prev_x = x;
+            }
+            vTaskDelay(pdMS_TO_TICKS(frame_ms));
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1500));
+    }
+}
+
 void display_animate_flight(const flight_t *flight, int index, int total, int duration_ms)
 {
     if (!dma_display) return;
@@ -334,8 +423,6 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
         vTaskDelay(pdMS_TO_TICKS(duration_ms));
     } else {
         // --- Animated display: scroll whichever text needs it ---
-        int max_scroll = callsign_scroll_range > country_scroll_range
-                         ? callsign_scroll_range : country_scroll_range;
         int pause_ms = 1000;
         int scroll_ms = duration_ms - 2 * pause_ms;
         if (scroll_ms < 1000) scroll_ms = 1000;
