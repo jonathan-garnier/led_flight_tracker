@@ -256,17 +256,10 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
     dma_display->fillScreen(black);
     dma_display->setTextWrap(false);
 
-    // --- Bottom rows: default font ---
+    // --- Row 3: Speed left, counter right (static, never scrolls) ---
     dma_display->setFont(NULL);
     dma_display->setTextSize(1);
 
-    // Row 2: Country centered
-    int country_x = center_text_x(dma_display, flight->origin_country);
-    dma_display->setCursor(country_x, 16);
-    dma_display->setTextColor(cyan);
-    dma_display->print(flight->origin_country);
-
-    // Row 3: Speed left, counter right
     int kmh = (int)(flight->velocity * 3.6f + 0.5f);
     char spd_str[16];
     snprintf(spd_str, sizeof(spd_str), "%dkm/h", kmh);
@@ -281,8 +274,17 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
     dma_display->setTextColor(magenta);
     dma_display->print(counter);
 
+    // --- Measure country width (default font, 6px per char) ---
+    const int country_y = 16;
+    int country_pw = (int)strlen(flight->origin_country) * 6; // pixel width
+    bool country_scrolls = country_pw > 64;
+    int country_scroll_range = country_scrolls ? country_pw - 64 : 0;
+
     // --- Callsign row: FreeSansBold9pt ---
     const int callsign_y = 14;
+    bool callsign_scrolls = false;
+    int callsign_scroll_range = 0;
+    int callsign_w_int = 0;
 
     if (flight->callsign[0] == '\0') {
         // No callsign - show "Unknown" in default font
@@ -293,24 +295,37 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
         dma_display->setCursor(ph_x, 4);
         dma_display->setTextColor(dma_display->color565(180, 180, 180));
         dma_display->print(placeholder);
-        vTaskDelay(pdMS_TO_TICKS(duration_ms));
-        return;
+    } else {
+        // Measure callsign width with FreeSansBold9pt
+        dma_display->setFont(&FreeSansBold9pt7b);
+        dma_display->setTextSize(1);
+        int16_t bx1, by1;
+        uint16_t callsign_w, callsign_h;
+        dma_display->getTextBounds(flight->callsign, 0, 0, &bx1, &by1, &callsign_w, &callsign_h);
+        callsign_w_int = (int)callsign_w;
+        callsign_scrolls = callsign_w_int > 64;
+        callsign_scroll_range = callsign_scrolls ? callsign_w_int - 64 : 0;
     }
 
-    // Measure callsign width with FreeSansBold9pt
-    dma_display->setFont(&FreeSansBold9pt7b);
-    dma_display->setTextSize(1);
+    bool needs_animation = callsign_scrolls || country_scrolls;
 
-    int16_t bx1, by1;
-    uint16_t callsign_w, callsign_h;
-    dma_display->getTextBounds(flight->callsign, 0, 0, &bx1, &by1, &callsign_w, &callsign_h);
+    if (!needs_animation) {
+        // --- Static display: draw everything centered, sleep ---
+        if (flight->callsign[0] != '\0') {
+            dma_display->setFont(&FreeSansBold9pt7b);
+            dma_display->setTextSize(1);
+            int callsign_x = (64 - callsign_w_int) / 2;
+            dma_display->setCursor(callsign_x, callsign_y);
+            dma_display->setTextColor(white);
+            dma_display->print(flight->callsign);
+        }
 
-    if ((int)callsign_w <= 64) {
-        // Fits on screen - draw centered, sleep for full duration
-        int callsign_x = (64 - (int)callsign_w) / 2;
-        dma_display->setCursor(callsign_x, callsign_y);
-        dma_display->setTextColor(white);
-        dma_display->print(flight->callsign);
+        dma_display->setFont(NULL);
+        dma_display->setTextSize(1);
+        int country_x = (64 - country_pw) / 2;
+        dma_display->setCursor(country_x, country_y);
+        dma_display->setTextColor(cyan);
+        dma_display->print(flight->origin_country);
 
         ESP_LOGI(TAG, "Showing flight %d/%d: %s (%s) %.0fm %dkm/h",
                  index + 1, total, flight->callsign, flight->origin_country,
@@ -318,51 +333,77 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
 
         vTaskDelay(pdMS_TO_TICKS(duration_ms));
     } else {
-        // Needs scrolling - erase old text in black, draw new in white (no fillRect flicker)
-        int scroll_range = (int)callsign_w - 64;
+        // --- Animated display: scroll whichever text needs it ---
+        int max_scroll = callsign_scroll_range > country_scroll_range
+                         ? callsign_scroll_range : country_scroll_range;
         int pause_ms = 1000;
         int scroll_ms = duration_ms - 2 * pause_ms;
         if (scroll_ms < 1000) scroll_ms = 1000;
         int frame_ms = 30;
         int total_frames = scroll_ms / frame_ms;
 
-        ESP_LOGI(TAG, "Scrolling flight %d/%d: %s (%s) w=%d scroll=%d",
+        ESP_LOGI(TAG, "Scrolling flight %d/%d: %s (%s) cs_scroll=%d co_scroll=%d",
                  index + 1, total, flight->callsign, flight->origin_country,
-                 (int)callsign_w, scroll_range);
+                 callsign_scroll_range, country_scroll_range);
 
-        // Draw initial position (left-aligned at x=0), pause
-        int prev_x = 0;
-        dma_display->setFont(&FreeSansBold9pt7b);
+        // Draw initial positions
+        int cs_prev_x = callsign_scrolls ? 0 : (64 - callsign_w_int) / 2;
+        int co_prev_x = country_scrolls ? 0 : (64 - country_pw) / 2;
+
+        if (flight->callsign[0] != '\0') {
+            dma_display->setFont(&FreeSansBold9pt7b);
+            dma_display->setTextSize(1);
+            dma_display->setTextColor(white);
+            dma_display->setCursor(cs_prev_x, callsign_y);
+            dma_display->print(flight->callsign);
+        }
+
+        dma_display->setFont(NULL);
         dma_display->setTextSize(1);
-        dma_display->setTextColor(white);
-        dma_display->setCursor(prev_x, callsign_y);
-        dma_display->print(flight->callsign);
+        dma_display->setTextColor(cyan);
+        dma_display->setCursor(co_prev_x, country_y);
+        dma_display->print(flight->origin_country);
+
         vTaskDelay(pdMS_TO_TICKS(pause_ms));
 
-        // Scroll left - erase previous frame by redrawing in black, then draw new position
+        // Animate scroll
         for (int frame = 1; frame <= total_frames; frame++) {
-            int x_offset = -(scroll_range * frame / total_frames);
+            // Callsign
+            if (callsign_scrolls && flight->callsign[0] != '\0') {
+                int cs_x = -(callsign_scroll_range * frame / total_frames);
+                if (cs_x != cs_prev_x) {
+                    dma_display->setFont(&FreeSansBold9pt7b);
+                    dma_display->setTextSize(1);
+                    dma_display->setTextColor(black);
+                    dma_display->setCursor(cs_prev_x, callsign_y);
+                    dma_display->print(flight->callsign);
+                    dma_display->setTextColor(white);
+                    dma_display->setCursor(cs_x, callsign_y);
+                    dma_display->print(flight->callsign);
+                    cs_prev_x = cs_x;
+                }
+            }
 
-            if (x_offset != prev_x) {
-                // Erase old text
-                dma_display->setFont(&FreeSansBold9pt7b);
-                dma_display->setTextSize(1);
-                dma_display->setTextColor(black);
-                dma_display->setCursor(prev_x, callsign_y);
-                dma_display->print(flight->callsign);
-
-                // Draw new text
-                dma_display->setTextColor(white);
-                dma_display->setCursor(x_offset, callsign_y);
-                dma_display->print(flight->callsign);
-
-                prev_x = x_offset;
+            // Country
+            if (country_scrolls) {
+                int co_x = -(country_scroll_range * frame / total_frames);
+                if (co_x != co_prev_x) {
+                    dma_display->setFont(NULL);
+                    dma_display->setTextSize(1);
+                    dma_display->setTextColor(black);
+                    dma_display->setCursor(co_prev_x, country_y);
+                    dma_display->print(flight->origin_country);
+                    dma_display->setTextColor(cyan);
+                    dma_display->setCursor(co_x, country_y);
+                    dma_display->print(flight->origin_country);
+                    co_prev_x = co_x;
+                }
             }
 
             vTaskDelay(pdMS_TO_TICKS(frame_ms));
         }
 
-        // Pause at end position
+        // Pause at end
         vTaskDelay(pdMS_TO_TICKS(pause_ms));
     }
 }

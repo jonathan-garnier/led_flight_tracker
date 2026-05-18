@@ -12,6 +12,7 @@ static const char *TAG = "flight_api";
 
 static char s_api_username[65] = {0};
 static char s_api_password[65] = {0};
+static int s_api_call_count = 0;
 
 void flight_api_set_credentials(const char *username, const char *password)
 {
@@ -138,14 +139,32 @@ esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
     int status = esp_http_client_get_status_code(client);
     esp_http_client_cleanup(client);
 
+    s_api_call_count++;
+
+    if (status == 401) {
+        ESP_LOGE(TAG, "API returned 401 Unauthorized - credentials rejected");
+        free(resp.buffer);
+        return ESP_FAIL;
+    }
+
+    if (status == 429) {
+        ESP_LOGE(TAG, "API returned 429 Too Many Requests - rate limited! (call #%d today)", s_api_call_count);
+        free(resp.buffer);
+        return ESP_FAIL;
+    }
+
     if (status != 200) {
         ESP_LOGE(TAG, "API returned status %d", status);
         free(resp.buffer);
         return ESP_FAIL;
     }
 
-    ESP_LOGI(TAG, "API response: %d bytes (buffer capacity: %d)", resp.len, resp.capacity);
-    ESP_LOGI(TAG, "Request URL: %s", url);
+    ESP_LOGI(TAG, "API response: %d bytes, call #%d today (%s auth)",
+             resp.len, s_api_call_count,
+             s_api_username[0] ? "with" : "no");
+    if (!s_api_username[0] && s_api_call_count >= 80) {
+        ESP_LOGW(TAG, "WARNING: Approaching anonymous daily limit of 100 calls (currently %d)", s_api_call_count);
+    }
 
     cJSON *root = cJSON_Parse(resp.buffer);
     free(resp.buffer);
