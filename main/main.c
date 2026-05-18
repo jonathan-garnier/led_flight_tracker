@@ -16,7 +16,7 @@
 
 static const char *TAG = "main";
 
-#define POLL_INTERVAL_MS   30000
+#define POLL_INTERVAL_MS   20000
 #define DISPLAY_CYCLE_MS   8000
 #define QUIET_HOUR_START   23    // 11pm
 #define QUIET_HOUR_END     6     // 6am
