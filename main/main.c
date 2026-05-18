@@ -15,7 +15,7 @@
 static const char *TAG = "main";
 
 #define POLL_INTERVAL_MS   30000
-#define DISPLAY_CYCLE_MS   7000
+#define DISPLAY_CYCLE_MS   8000
 #define QUIET_HOUR_START   23    // 11pm
 #define QUIET_HOUR_END     6     // 6am
 #define SNTP_SYNC_TIMEOUT  15000 // ms
@@ -123,15 +123,15 @@ static void display_task(void *arg)
             memcpy(&flight, &s_flight_data.flights[current_index], sizeof(flight_t));
             xSemaphoreGive(s_flight_mutex);
 
-            display_show_flight(&flight, current_index, count);
+            // animate_flight blocks for DISPLAY_CYCLE_MS (handles scrolling internally)
+            display_animate_flight(&flight, current_index, count, DISPLAY_CYCLE_MS);
             current_index++;
         } else {
             xSemaphoreGive(s_flight_mutex);
             display_show_no_flights();
             current_index = 0;
+            vTaskDelay(pdMS_TO_TICKS(DISPLAY_CYCLE_MS));
         }
-
-        vTaskDelay(pdMS_TO_TICKS(DISPLAY_CYCLE_MS));
     }
 }
 
@@ -203,5 +203,5 @@ void app_main(void)
     display_show_no_flights();
 
     xTaskCreate(flight_poll_task, "flight_poll", 8192, &config, 5, NULL);
-    xTaskCreate(display_task, "display", 4096, NULL, 4, NULL);
+    xTaskCreate(display_task, "display", 8192, NULL, 4, NULL);
 }
