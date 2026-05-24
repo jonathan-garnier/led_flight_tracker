@@ -4,6 +4,7 @@
 // Adapted for ESP-IDF with custom pin mapping for 64x32 panel
 
 #include "display.h"
+#include "config_storage.h"
 #include "ESP32-HUB75-MatrixPanel-I2S-DMA.h"
 #include "Arduino.h"
 #include "esp_log.h"
@@ -18,6 +19,12 @@ static const char *TAG = "display";
 
 static MatrixPanel_I2S_DMA *dma_display = nullptr;
 
+// Theme colours (stored as color565, updated via display_set_color_theme)
+static uint16_t s_clr_callsign = 0xFFFF;  // white
+static uint16_t s_clr_country  = 0x07FF;  // cyan
+static uint16_t s_clr_speed    = 0xFFE0;  // yellow
+static uint16_t s_clr_counter  = 0xF81F;  // magenta (approximate)
+
 void display_arduino_init(void)
 {
     // Initialize Arduino HAL - MUST run before nvs_flash_init()
@@ -30,11 +37,11 @@ void display_init(void)
     // Custom pin mapping
     HUB75_I2S_CFG::i2s_pins pins = {
         .r1 = 2,
-        .g1 = 15,
-        .b1 = 4,
+        .g1 = 4,   // swapped: panel B/G channels are reversed
+        .b1 = 15,
         .r2 = 5,
-        .g2 = 6,
-        .b2 = 7,
+        .g2 = 7,   // swapped: panel B/G channels are reversed
+        .b2 = 6,
         .a = 8,
         .b = 9,
         .c = 10,
@@ -54,8 +61,12 @@ void display_init(void)
 
     dma_display = new MatrixPanel_I2S_DMA(mxconfig);
     dma_display->begin();
-    dma_display->setBrightness8(90);
+
+    uint8_t brightness = 90;
+    config_storage_get_brightness(&brightness);
+    dma_display->setBrightness8(brightness);
     dma_display->clearScreen();
+    ESP_LOGI(TAG, "Brightness: %d", brightness);
 
     ESP_LOGI(TAG, "Display initialized (64x32, 1/16 scan)");
 }
@@ -135,10 +146,6 @@ void display_show_flight(const flight_t *flight, int index, int total)
     if (!dma_display) return;
 
     uint16_t black  = dma_display->color565(0, 0, 0);
-    uint16_t white  = dma_display->color565(255, 255, 255);
-    uint16_t cyan   = dma_display->color565(0, 255, 255);
-    uint16_t yellow = dma_display->color565(255, 255, 0);
-    uint16_t magenta = dma_display->color565(255, 0, 200);
 
     dma_display->fillScreen(black);
     dma_display->setFont(&TomThumb);
@@ -170,7 +177,7 @@ void display_show_flight(const flight_t *flight, int index, int total)
         }
         int callsign_x = center_text_x(dma_display, flight->callsign);
         dma_display->setCursor(callsign_x, use_bold ? 14 : 13);
-        dma_display->setTextColor(white);
+        dma_display->setTextColor(s_clr_callsign);
         dma_display->print(flight->callsign);
     }
 
@@ -181,7 +188,7 @@ void display_show_flight(const flight_t *flight, int index, int total)
     // Row 2: Country centered
     int country_x = center_text_x(dma_display, flight->origin_country);
     dma_display->setCursor(country_x, 16);
-    dma_display->setTextColor(cyan);
+    dma_display->setTextColor(s_clr_country);
     dma_display->print(flight->origin_country);
 
     // Row 3 (y=27): Speed left, counter right
@@ -189,14 +196,14 @@ void display_show_flight(const flight_t *flight, int index, int total)
     char spd_str[16];
     snprintf(spd_str, sizeof(spd_str), "%dkm/h", kmh);
     dma_display->setCursor(1, 24);
-    dma_display->setTextColor(yellow);
+    dma_display->setTextColor(s_clr_speed);
     dma_display->print(spd_str);
 
     char counter[24];
     snprintf(counter, sizeof(counter), "%d/%d", index + 1, total);
     int counter_x = 64 - (int)(strlen(counter) * 6);
     dma_display->setCursor(counter_x, 24);
-    dma_display->setTextColor(magenta);
+    dma_display->setTextColor(s_clr_counter);
     dma_display->print(counter);
 
     ESP_LOGI(TAG, "Showing flight %d/%d: %s (%s) %.0fm %dkm/h",
@@ -332,15 +339,36 @@ void display_show_config_mode(void)
     }
 }
 
+void display_set_brightness(uint8_t brightness)
+{
+    if (!dma_display) return;
+    dma_display->setBrightness8(brightness);
+    ESP_LOGI(TAG, "Brightness set to %d", brightness);
+}
+
+static uint16_t rgb_to_565(uint32_t rgb)
+{
+    uint8_t r = (rgb >> 16) & 0xFF;
+    uint8_t g = (rgb >> 8) & 0xFF;
+    uint8_t b = rgb & 0xFF;
+    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+}
+
+void display_set_color_theme(uint32_t callsign_rgb, uint32_t country_rgb,
+                             uint32_t speed_rgb, uint32_t counter_rgb)
+{
+    s_clr_callsign = rgb_to_565(callsign_rgb);
+    s_clr_country  = rgb_to_565(country_rgb);
+    s_clr_speed    = rgb_to_565(speed_rgb);
+    s_clr_counter  = rgb_to_565(counter_rgb);
+    ESP_LOGI(TAG, "Color theme updated");
+}
+
 void display_animate_flight(const flight_t *flight, int index, int total, int duration_ms)
 {
     if (!dma_display) return;
 
     uint16_t black   = dma_display->color565(0, 0, 0);
-    uint16_t white   = dma_display->color565(255, 255, 255);
-    uint16_t cyan    = dma_display->color565(0, 255, 255);
-    uint16_t yellow  = dma_display->color565(255, 255, 0);
-    uint16_t magenta = dma_display->color565(255, 0, 200);
 
     dma_display->fillScreen(black);
     dma_display->setTextWrap(false);
@@ -353,14 +381,14 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
     char spd_str[16];
     snprintf(spd_str, sizeof(spd_str), "%dkm/h", kmh);
     dma_display->setCursor(1, 24);
-    dma_display->setTextColor(yellow);
+    dma_display->setTextColor(s_clr_speed);
     dma_display->print(spd_str);
 
     char counter[24];
     snprintf(counter, sizeof(counter), "%d/%d", index + 1, total);
     int counter_x = 64 - (int)(strlen(counter) * 6);
     dma_display->setCursor(counter_x, 24);
-    dma_display->setTextColor(magenta);
+    dma_display->setTextColor(s_clr_counter);
     dma_display->print(counter);
 
     // --- Measure country width (default font, 6px per char) ---
@@ -405,7 +433,7 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
             dma_display->setTextSize(1);
             int callsign_x = (64 - callsign_w_int) / 2;
             dma_display->setCursor(callsign_x, callsign_y);
-            dma_display->setTextColor(white);
+            dma_display->setTextColor(s_clr_callsign);
             dma_display->print(flight->callsign);
         }
 
@@ -413,7 +441,7 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
         dma_display->setTextSize(1);
         int country_x = (64 - country_pw) / 2;
         dma_display->setCursor(country_x, country_y);
-        dma_display->setTextColor(cyan);
+        dma_display->setTextColor(s_clr_country);
         dma_display->print(flight->origin_country);
 
         ESP_LOGI(TAG, "Showing flight %d/%d: %s (%s) %.0fm %dkm/h",
@@ -440,14 +468,14 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
         if (flight->callsign[0] != '\0') {
             dma_display->setFont(&FreeSansBold9pt7b);
             dma_display->setTextSize(1);
-            dma_display->setTextColor(white);
+            dma_display->setTextColor(s_clr_callsign);
             dma_display->setCursor(cs_prev_x, callsign_y);
             dma_display->print(flight->callsign);
         }
 
         dma_display->setFont(NULL);
         dma_display->setTextSize(1);
-        dma_display->setTextColor(cyan);
+        dma_display->setTextColor(s_clr_country);
         dma_display->setCursor(co_prev_x, country_y);
         dma_display->print(flight->origin_country);
 
@@ -464,7 +492,7 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
                     dma_display->setTextColor(black);
                     dma_display->setCursor(cs_prev_x, callsign_y);
                     dma_display->print(flight->callsign);
-                    dma_display->setTextColor(white);
+                    dma_display->setTextColor(s_clr_callsign);
                     dma_display->setCursor(cs_x, callsign_y);
                     dma_display->print(flight->callsign);
                     cs_prev_x = cs_x;
@@ -480,7 +508,7 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
                     dma_display->setTextColor(black);
                     dma_display->setCursor(co_prev_x, country_y);
                     dma_display->print(flight->origin_country);
-                    dma_display->setTextColor(cyan);
+                    dma_display->setTextColor(s_clr_country);
                     dma_display->setCursor(co_x, country_y);
                     dma_display->print(flight->origin_country);
                     co_prev_x = co_x;

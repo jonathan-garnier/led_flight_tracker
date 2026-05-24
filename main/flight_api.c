@@ -18,6 +18,7 @@ static char s_client_secret[65] = {0};
 static char *s_access_token = NULL;
 static int64_t s_token_expiry = 0;  // monotonic time in microseconds
 static int s_api_call_count = 0;
+static int s_credits_remaining = -1;
 
 void flight_api_set_oauth_credentials(const char *client_id, const char *client_secret)
 {
@@ -369,8 +370,11 @@ esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
         return ESP_FAIL;
     }
 
+    if (resp.rate_limit_remaining >= 0) {
+        s_credits_remaining = resp.rate_limit_remaining;
+    }
     ESP_LOGI(TAG, "API response: %d bytes, call #%d today, credits remaining: %d",
-             resp.len, s_api_call_count, resp.rate_limit_remaining);
+             resp.len, s_api_call_count, s_credits_remaining);
 
     cJSON *root = cJSON_Parse(resp.buffer);
     free(resp.buffer);
@@ -408,4 +412,9 @@ esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
 
     cJSON_Delete(root);
     return ESP_OK;
+}
+
+int flight_api_get_credits_remaining(void)
+{
+    return s_credits_remaining;
 }

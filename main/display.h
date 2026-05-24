@@ -32,6 +32,13 @@ void display_show_status(const char *line1, const char *line2);
 // Show config mode screen with scrolling AP name (blocks forever)
 void display_show_config_mode(void);
 
+// Set display brightness (0-255)
+void display_set_brightness(uint8_t brightness);
+
+// Set colour theme (packed RGB values, e.g. 0xFF00C8)
+void display_set_color_theme(uint32_t callsign_rgb, uint32_t country_rgb,
+                             uint32_t speed_rgb, uint32_t counter_rgb);
+
 #ifdef __cplusplus
 }
 #endif

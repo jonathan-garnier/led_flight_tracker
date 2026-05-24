@@ -78,6 +78,73 @@ done:
     return ret;
 }
 
+esp_err_t config_storage_set_brightness(uint8_t brightness)
+{
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (ret != ESP_OK) return ret;
+
+    nvs_set_u8(handle, "brightness", brightness);
+    ret = nvs_commit(handle);
+    nvs_close(handle);
+    ESP_LOGI(TAG, "Brightness saved: %d", brightness);
+    return ret;
+}
+
+esp_err_t config_storage_get_brightness(uint8_t *brightness)
+{
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle);
+    if (ret != ESP_OK) {
+        *brightness = 90;  // default
+        return ESP_OK;
+    }
+
+    ret = nvs_get_u8(handle, "brightness", brightness);
+    nvs_close(handle);
+    if (ret == ESP_ERR_NVS_NOT_FOUND) {
+        *brightness = 90;  // default
+        return ESP_OK;
+    }
+    return ret;
+}
+
+esp_err_t config_storage_set_color_theme(const color_theme_t *theme)
+{
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (ret != ESP_OK) return ret;
+
+    nvs_set_u32(handle, "clr_call", theme->callsign);
+    nvs_set_u32(handle, "clr_ctry", theme->country);
+    nvs_set_u32(handle, "clr_spd", theme->speed);
+    nvs_set_u32(handle, "clr_ctr", theme->counter);
+    ret = nvs_commit(handle);
+    nvs_close(handle);
+    ESP_LOGI(TAG, "Color theme saved");
+    return ret;
+}
+
+esp_err_t config_storage_get_color_theme(color_theme_t *theme)
+{
+    // Set defaults first
+    theme->callsign = 0xFFFFFF;
+    theme->country  = 0x00FFFF;
+    theme->speed    = 0xFFFF00;
+    theme->counter  = 0xFF00C8;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle);
+    if (ret != ESP_OK) return ESP_OK;  // defaults are fine
+
+    nvs_get_u32(handle, "clr_call", &theme->callsign);
+    nvs_get_u32(handle, "clr_ctry", &theme->country);
+    nvs_get_u32(handle, "clr_spd", &theme->speed);
+    nvs_get_u32(handle, "clr_ctr", &theme->counter);
+    nvs_close(handle);
+    return ESP_OK;
+}
+
 bool config_storage_exists(void)
 {
     nvs_handle_t handle;

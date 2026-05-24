@@ -13,6 +13,7 @@
 #include "display.h"
 #include "nvs_flash.h"
 #include "esp_wifi.h"
+#include "esp_netif.h"
 
 static const char *TAG = "main";
 
@@ -137,6 +138,17 @@ static void display_task(void *arg)
     }
 }
 
+// Called by web server to get current flight count (thread-safe)
+int app_get_flight_count(void)
+{
+    int count = 0;
+    if (s_flight_mutex && xSemaphoreTake(s_flight_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        count = s_flight_data.count;
+        xSemaphoreGive(s_flight_mutex);
+    }
+    return count;
+}
+
 void app_main(void)
 {
     // Step 1: Arduino HAL must init before anything that touches NVS
@@ -184,8 +196,18 @@ void app_main(void)
     // Step 4: Start display AFTER WiFi
     display_init();
 
+    // Load colour theme from NVS
+    color_theme_t theme;
+    config_storage_get_color_theme(&theme);
+    display_set_color_theme(theme.callsign, theme.country, theme.speed, theme.counter);
+
     if (wifi_ok) {
         ESP_LOGI(TAG, "WiFi connected");
+        esp_netif_ip_info_t ip_info;
+        esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+        if (netif && esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+            ESP_LOGI(TAG, "Settings page: http://" IPSTR "/settings", IP2STR(&ip_info.ip));
+        }
         display_show_status("Connected!", config.ssid);
     } else {
         ESP_LOGE(TAG, "WiFi connection failed");
@@ -225,7 +247,10 @@ void app_main(void)
     // Step 6: Time sync
     init_sntp();
 
-    // Step 6: Start flight polling and display tasks
+    // Step 7: Start settings web server
+    web_server_start_settings();
+
+    // Step 8: Start flight polling and display tasks
     s_flight_mutex = xSemaphoreCreateMutex();
     display_show_no_flights();
 

@@ -35,3 +35,6 @@ esp_err_t flight_api_validate_credentials(void);
 // Results are written into `data`. Returns ESP_OK on success.
 esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
                            flight_data_t *data);
+
+// Get the last known API credits remaining (-1 if not yet fetched)
+int flight_api_get_credits_remaining(void);
