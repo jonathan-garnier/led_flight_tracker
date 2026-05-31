@@ -32,6 +32,11 @@ void display_show_idle(int duration_ms);
 // Show a status message (e.g. "Connecting WiFi...", "AP Mode")
 void display_show_status(const char *line1, const char *line2);
 
+// Show a status message with a static top line and a horizontally-scrolling
+// bottom line (for text too long to fit, e.g. a hostname/URL).
+// Blocks for duration_ms.
+void display_show_status_scroll(const char *line1, const char *line2, int duration_ms);
+
 // Show config mode screen with scrolling AP name (blocks forever)
 void display_show_config_mode(void);
 

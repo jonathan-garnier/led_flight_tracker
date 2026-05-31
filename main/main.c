@@ -14,8 +14,11 @@
 #include "nvs_flash.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
+#include "mdns.h"
 
 static const char *TAG = "main";
+
+#define MDNS_HOSTNAME "flighttracker"
 
 #define POLL_INTERVAL_MS   20000
 #define DISPLAY_CYCLE_MS   8000
@@ -209,13 +212,26 @@ void app_main(void)
             snprintf(ip_str, sizeof(ip_str), IPSTR, IP2STR(&ip_info.ip));
             ESP_LOGI(TAG, "Settings page: http://%s/settings", ip_str);
         }
+
+        // Advertise a .local hostname via mDNS so the settings page is
+        // reachable at http://flighttracker.local/settings
+        if (mdns_init() == ESP_OK) {
+            mdns_hostname_set(MDNS_HOSTNAME);
+            mdns_instance_name_set("Flight Tracker");
+            mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
+            ESP_LOGI(TAG, "mDNS started: http://%s.local/settings", MDNS_HOSTNAME);
+        } else {
+            ESP_LOGW(TAG, "mDNS init failed");
+        }
+
         display_show_status("Connected!", config.ssid);
         vTaskDelay(pdMS_TO_TICKS(2000));
 
-        // Show IP so user can access settings page
+        // Show hostname (preferred) and IP so user can access settings page.
+        // Scrolls the long text so it doesn't run off the 64px panel.
+        display_show_status_scroll("Settings at:", MDNS_HOSTNAME ".local", 8000);
         if (ip_str[0]) {
-            display_show_status("Settings:", ip_str);
-            vTaskDelay(pdMS_TO_TICKS(5000));
+            display_show_status_scroll("or IP:", ip_str, 6000);
         }
     } else {
         ESP_LOGE(TAG, "WiFi connection failed - will reset to AP mode");

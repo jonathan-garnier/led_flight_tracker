@@ -545,6 +545,85 @@ void display_show_status(const char *line1, const char *line2)
     }
 }
 
+void display_show_status_scroll(const char *line1, const char *line2, int duration_ms)
+{
+    if (!dma_display) return;
+
+    uint16_t black  = dma_display->color565(0, 0, 0);
+    uint16_t yellow = dma_display->color565(255, 255, 0);
+
+    dma_display->fillScreen(black);
+    dma_display->setFont(NULL);
+    dma_display->setTextSize(1);
+    dma_display->setTextWrap(false);
+
+    // Static top line
+    dma_display->setTextColor(yellow);
+    if (line1) {
+        dma_display->setCursor(1, 8);
+        dma_display->print(line1);
+    }
+
+    const int y2 = 18;
+    int line2_pw = line2 ? (int)strlen(line2) * 6 : 0;  // default font 6px/char
+    int scroll_range = line2_pw - 64;
+
+    // Fits as-is: just centre it and hold
+    if (!line2 || scroll_range <= 0) {
+        if (line2) {
+            int x = (64 - line2_pw) / 2;
+            if (x < 0) x = 0;
+            dma_display->setTextColor(yellow);
+            dma_display->setCursor(x, y2);
+            dma_display->print(line2);
+        }
+        vTaskDelay(pdMS_TO_TICKS(duration_ms));
+        return;
+    }
+
+    const int frame_ms = 40;
+    const int end_hold_ms = 900;
+    int elapsed = 0;
+    int prev_x = 0;
+
+    // Initial draw at start position
+    dma_display->setTextColor(yellow);
+    dma_display->setCursor(prev_x, y2);
+    dma_display->print(line2);
+
+    while (elapsed < duration_ms) {
+        // Hold at start
+        vTaskDelay(pdMS_TO_TICKS(end_hold_ms));
+        elapsed += end_hold_ms;
+
+        // Scroll left
+        for (int x = -1; x >= -scroll_range && elapsed < duration_ms; x--) {
+            dma_display->setTextColor(black);   // erase previous
+            dma_display->setCursor(prev_x, y2);
+            dma_display->print(line2);
+            dma_display->setTextColor(yellow);  // draw new
+            dma_display->setCursor(x, y2);
+            dma_display->print(line2);
+            prev_x = x;
+            vTaskDelay(pdMS_TO_TICKS(frame_ms));
+            elapsed += frame_ms;
+        }
+
+        // Hold at end
+        vTaskDelay(pdMS_TO_TICKS(end_hold_ms));
+        elapsed += end_hold_ms;
+
+        // Jump back to start for the next pass
+        dma_display->setTextColor(black);
+        dma_display->setCursor(prev_x, y2);
+        dma_display->print(line2);
+        dma_display->setTextColor(yellow);
+        dma_display->setCursor(0, y2);
+        dma_display->print(line2);
+        prev_x = 0;
+    }
+}
+
 void display_show_config_mode(void)
 {
     if (!dma_display) return;
