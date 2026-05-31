@@ -8,6 +8,7 @@
 #include "ESP32-HUB75-MatrixPanel-I2S-DMA.h"
 #include "Arduino.h"
 #include "esp_log.h"
+#include <time.h>
 #include <Fonts/TomThumb.h>
 #include <Fonts/FreeSansBold9pt7b.h>
 
@@ -219,13 +220,307 @@ void display_show_no_flights(void)
     uint16_t cyan  = dma_display->color565(0, 255, 255);
 
     dma_display->fillScreen(black);
+    dma_display->setFont(NULL);
     dma_display->setTextSize(1);
     dma_display->setTextWrap(false);
     dma_display->setTextColor(cyan);
-    dma_display->setCursor(4, 8);
-    dma_display->print("No flights");
-    dma_display->setCursor(10, 18);
-    dma_display->print("overhead");
+
+    const char *l1 = "No flights";
+    int l1_x = center_text_x(dma_display, l1);
+    dma_display->setCursor(l1_x, 8);
+    dma_display->print(l1);
+
+    const char *l2 = "overhead";
+    int l2_x = center_text_x(dma_display, l2);
+    dma_display->setCursor(l2_x, 18);
+    dma_display->print(l2);
+}
+
+// --- Large 7-segment clock rendering ---
+
+#define SEG_A 0x01
+#define SEG_B 0x02
+#define SEG_C 0x04
+#define SEG_D 0x08
+#define SEG_E 0x10
+#define SEG_F 0x20
+#define SEG_G 0x40
+
+static const uint8_t DIGIT_SEGS[10] = {
+    SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,        // 0
+    SEG_B|SEG_C,                                   // 1 (special-cased)
+    SEG_A|SEG_B|SEG_D|SEG_E|SEG_G,               // 2
+    SEG_A|SEG_B|SEG_C|SEG_D|SEG_G,               // 3
+    SEG_B|SEG_C|SEG_F|SEG_G,                      // 4
+    SEG_A|SEG_C|SEG_D|SEG_F|SEG_G,               // 5
+    SEG_A|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G,         // 6
+    SEG_A|SEG_B|SEG_C,                            // 7
+    SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G,  // 8
+    SEG_A|SEG_B|SEG_C|SEG_D|SEG_F|SEG_G,         // 9
+};
+
+// Digit is 11px wide × 25px tall, centred at y=4, 3px thick segments
+// Verticals extend through the middle zone so digits like 0 have no gap
+struct seg_rect { int x, y, w, h; };
+
+static const seg_rect SEG_GEOM[7] = {
+    {0,  4,  11, 3},   // A - top      (y=4..6)
+    {8,  7,  3,  10},  // B - upper right (y=7..16, bridges middle)
+    {8,  16, 3,  10},  // C - lower right (y=16..25)
+    {0,  26, 11, 3},   // D - bottom   (y=26..28)
+    {0,  16, 3,  10},  // E - lower left
+    {0,  7,  3,  10},  // F - upper left
+    {0,  15, 11, 3},   // G - middle   (y=15..17)
+};
+
+static uint16_t clock_row_color(int y)
+{
+    if (y < 7)  return dma_display->color565(0, 200, 255);    // cyan
+    if (y < 13) return dma_display->color565(0, 220, 60);     // green
+    if (y < 19) return dma_display->color565(220, 220, 0);    // yellow
+    if (y < 25) return dma_display->color565(255, 120, 0);    // orange
+    return dma_display->color565(255, 0, 40);                  // red
+}
+
+static void draw_big_digit(int dx, int digit)
+{
+    // "1" drawn as a centred bar spanning the digit height
+    if (digit == 1) {
+        int bar_x = dx + 4;  // centre 3px bar in 11px digit
+        for (int y = 4; y <= 28; y++) {
+            dma_display->drawFastHLine(bar_x, y, 3, clock_row_color(y));
+        }
+        return;
+    }
+
+    // "4" special-cased: extend verticals to full height so it matches others
+    if (digit == 4) {
+        // F - left vertical, top half only (y=4..17)
+        for (int y = 4; y <= 17; y++)
+            dma_display->drawFastHLine(dx + 0, y, 3, clock_row_color(y));
+        // G - middle horizontal
+        for (int y = 15; y <= 17; y++)
+            dma_display->drawFastHLine(dx + 0, y, 11, clock_row_color(y));
+        // B+C - right vertical, full height (y=4..28)
+        for (int y = 4; y <= 28; y++)
+            dma_display->drawFastHLine(dx + 8, y, 3, clock_row_color(y));
+        return;
+    }
+
+    // "7" special-cased: extend right vertical to full height
+    if (digit == 7) {
+        // A - top horizontal
+        for (int y = 4; y <= 6; y++)
+            dma_display->drawFastHLine(dx + 0, y, 11, clock_row_color(y));
+        // B+C - right vertical, full height (y=4..28)
+        for (int y = 4; y <= 28; y++)
+            dma_display->drawFastHLine(dx + 8, y, 3, clock_row_color(y));
+        return;
+    }
+
+    // digit 0-9 draws the number, anything else draws a dash (segment G only)
+    uint8_t segs = (digit >= 0 && digit <= 9) ? DIGIT_SEGS[digit] : SEG_G;
+
+    for (int s = 0; s < 7; s++) {
+        if (!(segs & (1 << s))) continue;
+        const seg_rect *r = &SEG_GEOM[s];
+        for (int row = 0; row < r->h; row++) {
+            int y = r->y + row;
+            dma_display->drawFastHLine(dx + r->x, y, r->w, clock_row_color(y));
+        }
+    }
+}
+
+// Block-letter bitmaps for AM/PM (white, 2px-thick strokes)
+// P and A are 6 columns wide, M is 7 columns wide, all 9 rows tall
+#define LETTER_H 9
+
+static const uint8_t LETTER_P[LETTER_H] = {
+    0x3E, 0x3E,  // #####.
+    0x33, 0x33,  // ##..##
+    0x3E, 0x3E,  // #####.
+    0x30, 0x30,  // ##....
+    0x30,        // ##....
+};
+
+static const uint8_t LETTER_A[LETTER_H] = {
+    0x1E,        // .####.
+    0x33, 0x33,  // ##..##
+    0x3F, 0x3F,  // ######
+    0x33, 0x33,  // ##..##
+    0x33, 0x33,  // ##..##
+};
+
+static const uint8_t LETTER_M[LETTER_H] = {
+    0x63,        // ##...##
+    0x77,        // ###.###
+    0x7F,        // #######
+    0x6B,        // ##.#.##
+    0x63, 0x63,  // ##...##
+    0x63, 0x63,  // ##...##
+    0x63,        // ##...##
+};
+
+static void draw_block_letter(int dx, int dy, const uint8_t *bitmap, int cols)
+{
+    uint16_t white = dma_display->color565(255, 255, 255);
+    for (int row = 0; row < LETTER_H; row++) {
+        int y = dy + row;
+        uint8_t bits = bitmap[row];
+        for (int col = 0; col < cols; col++) {
+            if (bits & (1 << (cols - 1 - col))) {
+                dma_display->drawPixel(dx + col, y, white);
+            }
+        }
+    }
+}
+
+static int s_prev_clock_h = -1;
+static int s_prev_clock_m = -1;
+
+static void draw_clock_frame(void)
+{
+    if (!dma_display) return;
+
+    time_t now;
+    struct tm ti;
+    time(&now);
+    localtime_r(&now, &ti);
+
+    bool time_valid = (ti.tm_year >= (2024 - 1900));
+
+    // 12-hour conversion
+    int h24 = ti.tm_hour;
+    bool is_pm = (h24 >= 12);
+    int h12 = h24 % 12;
+    if (h12 == 0) h12 = 12;
+
+    // Skip redraw if nothing changed (we don't show seconds)
+    if (h12 == s_prev_clock_h && ti.tm_min == s_prev_clock_m) {
+        return;
+    }
+    s_prev_clock_h = h12;
+    s_prev_clock_m = ti.tm_min;
+
+    dma_display->fillScreen(0);
+
+    // Layout: 11px digits (3px segs), 3px colon, 6+7px block letters
+    const int d1x = -3, d2x = 8, d3x = 24, d4x = 36;
+    const int colon_x = 20;
+    const int ltr1_x = 49, ltr2_x = 56;
+    const int ltr_y = (32 - LETTER_H) / 2;  // vertically centred
+
+    if (time_valid) {
+        if (h12 >= 10) draw_big_digit(d1x, h12 / 10);
+        draw_big_digit(d2x, h12 % 10);
+        draw_big_digit(d3x, ti.tm_min / 10);
+        draw_big_digit(d4x, ti.tm_min % 10);
+    } else {
+        draw_big_digit(d1x, -1);
+        draw_big_digit(d2x, -1);
+        draw_big_digit(d3x, -1);
+        draw_big_digit(d4x, -1);
+    }
+
+    // Colon (always visible, 3×3 dots)
+    dma_display->fillRect(colon_x, 10, 3, 3, clock_row_color(11));
+    dma_display->fillRect(colon_x, 19, 3, 3, clock_row_color(20));
+
+    // AM/PM in white block letters
+    draw_block_letter(ltr1_x, ltr_y, is_pm ? LETTER_P : LETTER_A, 6);
+    draw_block_letter(ltr2_x, ltr_y, LETTER_M, 7);
+}
+
+static void draw_bonsai(void)
+{
+    if (!dma_display) return;
+
+    uint16_t pot_rim   = dma_display->color565(120, 55, 15);
+    uint16_t pot_body  = dma_display->color565(155, 75, 30);
+    uint16_t trunk_col = dma_display->color565(95, 55, 15);
+    uint16_t leaf_dk   = dma_display->color565(0, 75, 20);
+    uint16_t leaf_md   = dma_display->color565(15, 115, 30);
+    uint16_t leaf_lt   = dma_display->color565(35, 155, 45);
+
+    dma_display->fillScreen(0);
+
+    // Pot
+    dma_display->fillRect(21, 26, 22, 1, pot_rim);
+    dma_display->fillRect(23, 27, 18, 4, pot_body);
+    dma_display->fillRect(25, 31, 14, 1, pot_rim);
+
+    // Trunk base
+    dma_display->fillRect(31, 23, 3, 3, trunk_col);
+
+    // Main trunk curving up-right then left
+    dma_display->drawLine(32, 23, 35, 17, trunk_col);
+    dma_display->drawLine(33, 23, 36, 17, trunk_col);
+    dma_display->drawLine(31, 23, 34, 17, trunk_col);
+
+    // Upper trunk curving left
+    dma_display->drawLine(35, 17, 28, 9, trunk_col);
+    dma_display->drawLine(34, 17, 27, 9, trunk_col);
+
+    // Right branch
+    dma_display->drawLine(34, 16, 42, 10, trunk_col);
+    dma_display->drawLine(35, 16, 43, 10, trunk_col);
+
+    // Left branch
+    dma_display->drawLine(30, 13, 22, 7, trunk_col);
+    dma_display->drawLine(29, 13, 21, 7, trunk_col);
+
+    // Foliage pads - dark base, medium, light highlights
+    // Main canopy (top-left)
+    dma_display->fillCircle(27, 5, 6, leaf_dk);
+    dma_display->fillCircle(25, 3, 5, leaf_md);
+    dma_display->fillCircle(28, 3, 4, leaf_lt);
+
+    // Right pad
+    dma_display->fillCircle(43, 7, 5, leaf_dk);
+    dma_display->fillCircle(42, 5, 4, leaf_md);
+    dma_display->fillCircle(44, 5, 3, leaf_lt);
+
+    // Left pad
+    dma_display->fillCircle(20, 5, 4, leaf_dk);
+    dma_display->fillCircle(19, 4, 3, leaf_md);
+    dma_display->fillCircle(21, 3, 2, leaf_lt);
+
+    // Small connecting pad at top
+    dma_display->fillCircle(35, 2, 3, leaf_dk);
+    dma_display->fillCircle(36, 1, 2, leaf_md);
+}
+
+void display_show_idle(int duration_ms)
+{
+    if (!dma_display) return;
+
+    uint8_t mode = IDLE_MODE_TEXT;
+    config_storage_get_idle_mode(&mode);
+
+    switch (mode) {
+    case IDLE_MODE_CLOCK: {
+        s_prev_clock_h = -1;  // force first frame to draw
+        s_prev_clock_m = -1;
+        int elapsed = 0;
+        int step_ms = 1000;
+        while (elapsed < duration_ms) {
+            draw_clock_frame();
+            int remaining = duration_ms - elapsed;
+            int wait = remaining < step_ms ? remaining : step_ms;
+            vTaskDelay(pdMS_TO_TICKS(wait));
+            elapsed += wait;
+        }
+        break;
+    }
+    case IDLE_MODE_BONSAI:
+        draw_bonsai();
+        vTaskDelay(pdMS_TO_TICKS(duration_ms));
+        break;
+    default:
+        display_show_no_flights();
+        vTaskDelay(pdMS_TO_TICKS(duration_ms));
+        break;
+    }
 }
 
 void display_show_status(const char *line1, const char *line2)

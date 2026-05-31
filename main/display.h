@@ -26,6 +26,9 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
 // Show "No flights" message
 void display_show_no_flights(void);
 
+// Show idle screen based on user preference (blocks for duration_ms)
+void display_show_idle(int duration_ms);
+
 // Show a status message (e.g. "Connecting WiFi...", "AP Mode")
 void display_show_status(const char *line1, const char *line2);
 

@@ -44,6 +44,16 @@ typedef struct {
 esp_err_t config_storage_set_color_theme(const color_theme_t *theme);
 esp_err_t config_storage_get_color_theme(color_theme_t *theme);
 
+// Idle display mode (shown when no flights overhead)
+typedef enum {
+    IDLE_MODE_TEXT = 0,
+    IDLE_MODE_CLOCK = 1,
+    IDLE_MODE_BONSAI = 2,
+} idle_mode_t;
+
+esp_err_t config_storage_set_idle_mode(uint8_t mode);
+esp_err_t config_storage_get_idle_mode(uint8_t *mode);
+
 #ifdef __cplusplus
 }
 #endif

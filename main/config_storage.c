@@ -145,6 +145,37 @@ esp_err_t config_storage_get_color_theme(color_theme_t *theme)
     return ESP_OK;
 }
 
+esp_err_t config_storage_set_idle_mode(uint8_t mode)
+{
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (ret != ESP_OK) return ret;
+
+    nvs_set_u8(handle, "idle_mode", mode);
+    ret = nvs_commit(handle);
+    nvs_close(handle);
+    ESP_LOGI(TAG, "Idle mode saved: %d", mode);
+    return ret;
+}
+
+esp_err_t config_storage_get_idle_mode(uint8_t *mode)
+{
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle);
+    if (ret != ESP_OK) {
+        *mode = IDLE_MODE_TEXT;
+        return ESP_OK;
+    }
+
+    ret = nvs_get_u8(handle, "idle_mode", mode);
+    nvs_close(handle);
+    if (ret == ESP_ERR_NVS_NOT_FOUND) {
+        *mode = IDLE_MODE_TEXT;
+        return ESP_OK;
+    }
+    return ret;
+}
+
 bool config_storage_exists(void)
 {
     nvs_handle_t handle;

@@ -309,6 +309,7 @@ esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
     snprintf(url, sizeof(url),
              "https://opensky-network.org/api/states/all?lamin=%.4f&lomin=%.4f&lamax=%.4f&lomax=%.4f",
              lamin, lomin, lamax, lomax);
+    ESP_LOGI(TAG, "API request: %s", url);
 
     response_buf_t resp = {
         .buffer = malloc(MAX_RESPONSE_SIZE),

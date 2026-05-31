@@ -43,9 +43,6 @@ static const char CONFIG_PAGE_HTML[] =
     "<label>OpenSky Client Secret</label>"
     "<input name='api_csec' type='password' required maxlength='64'>"
     "<p class='info'>Create a free account at opensky-network.org, then generate API client credentials in your account settings.</p>"
-    "<label>GeoJSON Bounding Box</label>"
-    "<textarea name='geojson' required placeholder='Paste GeoJSON from geojson.io here...'></textarea>"
-    "<p class='info'>Go to geojson.io, draw a rectangle over your area, and paste the JSON output above.</p>"
     "<button type='submit'>Save &amp; Connect</button>"
     "</form></body></html>";
 
@@ -183,11 +180,10 @@ static esp_err_t config_post_handler(httpd_req_t *req)
     char *password = get_form_field(buf, "password");
     char *api_cid = get_form_field(buf, "api_cid");
     char *api_csec = get_form_field(buf, "api_csec");
-    char *geojson = get_form_field(buf, "geojson");
 
-    if (!ssid || !password || !api_cid || !api_csec || !geojson) {
+    if (!ssid || !password || !api_cid || !api_csec) {
         ESP_LOGE(TAG, "Missing form fields");
-        free(ssid); free(password); free(api_cid); free(api_csec); free(geojson); free(buf);
+        free(ssid); free(password); free(api_cid); free(api_csec); free(buf);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing fields");
         return ESP_FAIL;
     }
@@ -198,19 +194,17 @@ static esp_err_t config_post_handler(httpd_req_t *req)
     strncpy(config.api_client_id, api_cid, MAX_API_CLIENT_ID_LEN - 1);
     strncpy(config.api_client_secret, api_csec, MAX_API_CLIENT_SECRET_LEN - 1);
 
-    bool bbox_ok = parse_geojson_bbox(geojson, &config.lamin, &config.lomin, &config.lamax, &config.lomax);
+    // Default bounding box (greater Sydney area) - user can refine on settings page
+    config.lamin = -34.5f;
+    config.lomin = 150.0f;
+    config.lamax = -33.0f;
+    config.lomax = 152.0f;
 
     free(ssid);
     free(password);
     free(api_cid);
     free(api_csec);
-    free(geojson);
     free(buf);
-
-    if (!bbox_ok) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid GeoJSON - could not extract bounding box");
-        return ESP_FAIL;
-    }
 
     // Save config and reboot - credentials will be validated on boot
     config_storage_save(&config);
@@ -284,8 +278,35 @@ static const char SETTINGS_HEAD[] =
     ".btn-danger{background:#ff4444;color:#fff}"
     ".btn-danger:hover{background:#cc3333}"
     "hr{border:none;border-top:1px solid #333;margin:30px 0}"
-    "</style></head><body>"
+    ".idle-opt{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;"
+    "background:#16213e;border-radius:6px;margin-top:6px}"
+    "input[type=radio]{accent-color:#00d4ff;width:18px;height:18px}"
+    "#map{height:250px;border-radius:6px;margin-top:8px;z-index:0}"
+    ".bbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}"
+    ".bbox-grid label{margin:0;font-size:12px}"
+    "</style>"
+    "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'/>"
+    "</head><body>"
     "<h1>Flight Tracker</h1>";
+
+static const char MAP_JS[] =
+    "var map=L.map('map');"
+    "if(s>=n||w>=e){map.setView([0,0],2)}else{map.fitBounds([[s,w],[n,e]],{padding:[50,50]})}"
+    "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);"
+    "var rect=L.rectangle([[s,w],[n,e]],{color:'#00d4ff',weight:2,fillOpacity:.15}).addTo(map);"
+    "var cl=0,c1;"
+    "map.on('click',function(ev){"
+    "if(!cl){c1=ev.latlng;cl=1;return}"
+    "var b=L.latLngBounds(c1,ev.latlng);rect.setBounds(b);"
+    "document.getElementById('lamin').value=b.getSouth().toFixed(4);"
+    "document.getElementById('lomin').value=b.getWest().toFixed(4);"
+    "document.getElementById('lamax').value=b.getNorth().toFixed(4);"
+    "document.getElementById('lomax').value=b.getEast().toFixed(4);cl=0});"
+    "function umf(){"
+    "var b=L.latLngBounds("
+    "[+document.getElementById('lamin').value,+document.getElementById('lomin').value],"
+    "[+document.getElementById('lamax').value,+document.getElementById('lomax').value]);"
+    "if(b.isValid()){rect.setBounds(b);map.fitBounds(b,{padding:[50,50]})}}";
 
 static const char SETTINGS_FOOT[] =
     "</body></html>";
@@ -370,7 +391,57 @@ static esp_err_t settings_get_handler(httpd_req_t *req)
         (unsigned)(theme.counter & 0xFFFFFF));
     httpd_resp_send_chunk(req, buf, len);
 
+    // Idle display mode selector
+    uint8_t idle_mode = 0;
+    config_storage_get_idle_mode(&idle_mode);
+
+    len = snprintf(buf, sizeof(buf),
+        "<label>No Flights Display</label>"
+        "<label class='idle-opt'>"
+        "<input type='radio' name='idle_mode' value='0'%s> \"No flights\" text</label>"
+        "<label class='idle-opt'>"
+        "<input type='radio' name='idle_mode' value='1'%s> Clock</label>"
+        "<label class='idle-opt'>"
+        "<input type='radio' name='idle_mode' value='2'%s> Bonsai</label>",
+        idle_mode == 0 ? " checked" : "",
+        idle_mode == 1 ? " checked" : "",
+        idle_mode == 2 ? " checked" : "");
+    httpd_resp_send_chunk(req, buf, len);
+
     httpd_resp_send_chunk(req, "<button type='submit'>Apply</button></form>", HTTPD_RESP_USE_STRLEN);
+
+    // --- Tracking Area (map + bbox) ---
+    httpd_resp_send_chunk(req,
+        "<hr><label>Tracking Area</label>"
+        "<p class='info'>Click two points on the map to set the area, or edit the coordinates below.</p>"
+        "<div id='map'></div>",
+        HTTPD_RESP_USE_STRLEN);
+
+    len = snprintf(buf, sizeof(buf),
+        "<form method='POST' action='/bbox'>"
+        "<div class='bbox-grid'>"
+        "<div><label>South</label><input type='number' step='0.0001' id='lamin' name='lamin' value='%.4f' onchange='umf()'></div>"
+        "<div><label>North</label><input type='number' step='0.0001' id='lamax' name='lamax' value='%.4f' onchange='umf()'></div>",
+        cfg.lamin, cfg.lamax);
+    httpd_resp_send_chunk(req, buf, len);
+
+    len = snprintf(buf, sizeof(buf),
+        "<div><label>West</label><input type='number' step='0.0001' id='lomin' name='lomin' value='%.4f' onchange='umf()'></div>"
+        "<div><label>East</label><input type='number' step='0.0001' id='lomax' name='lomax' value='%.4f' onchange='umf()'></div>"
+        "</div>"
+        "<button type='submit'>Save &amp; Reboot</button>"
+        "</form>",
+        cfg.lomin, cfg.lomax);
+    httpd_resp_send_chunk(req, buf, len);
+
+    // Leaflet JS + map init
+    len = snprintf(buf, sizeof(buf),
+        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>"
+        "<script>var s=%.4f,w=%.4f,n=%.4f,e=%.4f;",
+        cfg.lamin, cfg.lomin, cfg.lamax, cfg.lomax);
+    httpd_resp_send_chunk(req, buf, len);
+    httpd_resp_send_chunk(req, MAP_JS, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send_chunk(req, "</script>", HTTPD_RESP_USE_STRLEN);
 
     // --- Reset button ---
     httpd_resp_send_chunk(req,
@@ -431,10 +502,68 @@ static esp_err_t settings_post_handler(httpd_req_t *req)
     config_storage_set_color_theme(&theme);
     display_set_color_theme(theme.callsign, theme.country, theme.speed, theme.counter);
 
+    // Idle display mode
+    val = get_form_field(buf, "idle_mode");
+    if (val) {
+        int m = atoi(val);
+        if (m >= 0 && m <= 2) {
+            config_storage_set_idle_mode((uint8_t)m);
+        }
+        free(val);
+    }
+
     // Redirect back to settings page
     httpd_resp_set_status(req, "303 See Other");
     httpd_resp_set_hdr(req, "Location", "/settings");
     httpd_resp_send(req, NULL, 0);
+    return ESP_OK;
+}
+
+static esp_err_t bbox_post_handler(httpd_req_t *req)
+{
+    char buf[256];
+    int received = 0;
+    int to_read = req->content_len < (int)sizeof(buf) - 1 ? req->content_len : (int)sizeof(buf) - 1;
+
+    while (received < to_read) {
+        int ret = httpd_req_recv(req, buf + received, to_read - received);
+        if (ret <= 0) {
+            httpd_resp_send_500(req);
+            return ESP_FAIL;
+        }
+        received += ret;
+    }
+    buf[received] = '\0';
+
+    device_config_t cfg;
+    config_storage_load(&cfg);
+
+    char *v;
+    v = get_form_field(buf, "lamin");
+    if (v) { cfg.lamin = strtof(v, NULL); free(v); }
+    v = get_form_field(buf, "lomin");
+    if (v) { cfg.lomin = strtof(v, NULL); free(v); }
+    v = get_form_field(buf, "lamax");
+    if (v) { cfg.lamax = strtof(v, NULL); free(v); }
+    v = get_form_field(buf, "lomax");
+    if (v) { cfg.lomax = strtof(v, NULL); free(v); }
+
+    config_storage_save(&cfg);
+    ESP_LOGI(TAG, "Bbox updated: [%.4f,%.4f,%.4f,%.4f]", cfg.lamin, cfg.lomin, cfg.lamax, cfg.lomax);
+
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_send(req,
+        "<!DOCTYPE html><html><head>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<style>body{font-family:sans-serif;max-width:480px;margin:40px auto;padding:0 16px;"
+        "background:#1a1a2e;color:#e0e0e0;text-align:center}"
+        "h1{color:#00ff88}</style></head><body>"
+        "<h1>Area Updated!</h1>"
+        "<p>The device will now reboot to apply the new tracking area.</p>"
+        "</body></html>", HTTPD_RESP_USE_STRLEN);
+
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    esp_restart();
     return ESP_OK;
 }
 
@@ -492,6 +621,13 @@ esp_err_t web_server_start_settings(void)
         .handler = settings_post_handler,
     };
     httpd_register_uri_handler(server, &settings_post);
+
+    httpd_uri_t bbox = {
+        .uri = "/bbox",
+        .method = HTTP_POST,
+        .handler = bbox_post_handler,
+    };
+    httpd_register_uri_handler(server, &bbox);
 
     httpd_uri_t reset = {
         .uri = "/reset",

@@ -131,9 +131,8 @@ static void display_task(void *arg)
             current_index++;
         } else {
             xSemaphoreGive(s_flight_mutex);
-            display_show_no_flights();
+            display_show_idle(DISPLAY_CYCLE_MS);
             current_index = 0;
-            vTaskDelay(pdMS_TO_TICKS(DISPLAY_CYCLE_MS));
         }
     }
 }
@@ -201,23 +200,34 @@ void app_main(void)
     config_storage_get_color_theme(&theme);
     display_set_color_theme(theme.callsign, theme.country, theme.speed, theme.counter);
 
+    char ip_str[16] = "";
     if (wifi_ok) {
         ESP_LOGI(TAG, "WiFi connected");
         esp_netif_ip_info_t ip_info;
         esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
         if (netif && esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
-            ESP_LOGI(TAG, "Settings page: http://" IPSTR "/settings", IP2STR(&ip_info.ip));
+            snprintf(ip_str, sizeof(ip_str), IPSTR, IP2STR(&ip_info.ip));
+            ESP_LOGI(TAG, "Settings page: http://%s/settings", ip_str);
         }
         display_show_status("Connected!", config.ssid);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+
+        // Show IP so user can access settings page
+        if (ip_str[0]) {
+            display_show_status("Settings:", ip_str);
+            vTaskDelay(pdMS_TO_TICKS(5000));
+        }
     } else {
-        ESP_LOGE(TAG, "WiFi connection failed");
+        ESP_LOGE(TAG, "WiFi connection failed - will reset to AP mode");
         display_show_status("WiFi FAILED", config.ssid);
-        // Stay here - can't do much without WiFi
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        display_show_status("Resetting to", "setup mode...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        esp_wifi_stop();
+        nvs_flash_erase();
+        esp_restart();
         return;
     }
-
-    // Brief pause so user can see the connected message
-    vTaskDelay(pdMS_TO_TICKS(2000));
 
     // Step 5: Validate OpenSky credentials
     if (config.api_client_id[0]) {
