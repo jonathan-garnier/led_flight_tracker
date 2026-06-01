@@ -1,11 +1,21 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "esp_err.h"
 
 #define MAX_FLIGHTS 20
 #define MAX_CALLSIGN_LEN 9
 #define MAX_COUNTRY_LEN 32
+#define MAX_AIRPORT_LEN 5   // up to 4-letter ICAO code + NUL (IATA is 3)
+
+// Route resolution state for a flight's origin/destination lookup.
+typedef enum {
+    ROUTE_UNKNOWN = 0,  // no callsign / not looked up
+    ROUTE_PENDING,      // queued for background resolution
+    ROUTE_RESOLVED,     // origin/dest populated
+    ROUTE_NONE,         // looked up but no route in the database
+} route_status_t;
 
 typedef struct {
     char callsign[MAX_CALLSIGN_LEN];
@@ -14,6 +24,9 @@ typedef struct {
     float velocity;   // ground speed in m/s
     float heading;    // track angle in degrees
     bool on_ground;   // true if aircraft is on the ground
+    char origin[MAX_AIRPORT_LEN];   // origin airport code (IATA preferred), "" if unknown
+    char dest[MAX_AIRPORT_LEN];     // destination airport code (IATA preferred), "" if unknown
+    uint8_t route_status;           // route_status_t
 } flight_t;
 
 typedef struct {

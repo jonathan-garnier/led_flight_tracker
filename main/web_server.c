@@ -377,16 +377,16 @@ static esp_err_t settings_get_handler(httpd_req_t *req)
 
     len = snprintf(buf, sizeof(buf),
         "<label>Colours</label>"
+        "<div class='color-row'><label>Route</label>"
+        "<input type='color' name='clr_route' value='#%06x'></div>"
         "<div class='color-row'><label>Callsign</label>"
-        "<input type='color' name='clr_call' value='#%06x'></div>"
-        "<div class='color-row'><label>Country</label>"
-        "<input type='color' name='clr_ctry' value='#%06x'></div>"
+        "<input type='color' name='clr_csgn' value='#%06x'></div>"
         "<div class='color-row'><label>Speed</label>"
         "<input type='color' name='clr_spd' value='#%06x'></div>"
         "<div class='color-row'><label>Counter</label>"
         "<input type='color' name='clr_ctr' value='#%06x'></div>",
+        (unsigned)(theme.route & 0xFFFFFF),
         (unsigned)(theme.callsign & 0xFFFFFF),
-        (unsigned)(theme.country & 0xFFFFFF),
         (unsigned)(theme.speed & 0xFFFFFF),
         (unsigned)(theme.counter & 0xFFFFFF));
     httpd_resp_send_chunk(req, buf, len);
@@ -490,17 +490,17 @@ static esp_err_t settings_post_handler(httpd_req_t *req)
     config_storage_get_color_theme(&theme);  // start with current
 
     char *v;
-    v = get_form_field(buf, "clr_call");
+    v = get_form_field(buf, "clr_route");
+    if (v) { theme.route = (uint32_t)strtol(v + 1, NULL, 16); free(v); }
+    v = get_form_field(buf, "clr_csgn");
     if (v) { theme.callsign = (uint32_t)strtol(v + 1, NULL, 16); free(v); }
-    v = get_form_field(buf, "clr_ctry");
-    if (v) { theme.country = (uint32_t)strtol(v + 1, NULL, 16); free(v); }
     v = get_form_field(buf, "clr_spd");
     if (v) { theme.speed = (uint32_t)strtol(v + 1, NULL, 16); free(v); }
     v = get_form_field(buf, "clr_ctr");
     if (v) { theme.counter = (uint32_t)strtol(v + 1, NULL, 16); free(v); }
 
     config_storage_set_color_theme(&theme);
-    display_set_color_theme(theme.callsign, theme.country, theme.speed, theme.counter);
+    display_set_color_theme(theme.route, theme.callsign, theme.speed, theme.counter);
 
     // Idle display mode
     val = get_form_field(buf, "idle_mode");

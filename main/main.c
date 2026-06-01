@@ -9,6 +9,8 @@
 #include "wifi_manager.h"
 #include "web_server.h"
 #include "flight_api.h"
+#include "route_api.h"
+#include "route_cache.h"
 #include "button.h"
 #include "display.h"
 #include "nvs_flash.h"
@@ -84,6 +86,113 @@ static bool is_quiet_hours(void)
     return (hour >= QUIET_HOUR_START || hour < QUIET_HOUR_END);
 }
 
+// Populate a flight's origin/dest/route_status from the in-RAM route cache.
+// Cache hits resolve instantly; misses are marked PENDING for the resolver task.
+static void fill_route_from_cache(flight_t *f)
+{
+    f->origin[0] = '\0';
+    f->dest[0] = '\0';
+    if (f->callsign[0] == '\0') {
+        f->route_status = ROUTE_UNKNOWN;
+        return;
+    }
+    switch (route_cache_lookup(f->callsign, f->origin, f->dest)) {
+    case ROUTE_CACHE_FOUND: f->route_status = ROUTE_RESOLVED; break;
+    case ROUTE_CACHE_NONE:  f->route_status = ROUTE_NONE;     break;
+    default:                f->route_status = ROUTE_PENDING;  break;
+    }
+}
+
+// Write a resolved route back into every live flight sharing the callsign.
+static void apply_route_to_live(const char *callsign, uint8_t status,
+                                const char *origin, const char *dest)
+{
+    xSemaphoreTake(s_flight_mutex, portMAX_DELAY);
+    for (int i = 0; i < s_flight_data.count; i++) {
+        flight_t *f = &s_flight_data.flights[i];
+        if (strncmp(f->callsign, callsign, MAX_CALLSIGN_LEN) != 0) continue;
+        f->route_status = status;
+        if (status == ROUTE_RESOLVED) {
+            strncpy(f->origin, origin, MAX_AIRPORT_LEN - 1);
+            f->origin[MAX_AIRPORT_LEN - 1] = '\0';
+            strncpy(f->dest, dest, MAX_AIRPORT_LEN - 1);
+            f->dest[MAX_AIRPORT_LEN - 1] = '\0';
+        } else {
+            f->origin[0] = '\0';
+            f->dest[0] = '\0';
+        }
+    }
+    xSemaphoreGive(s_flight_mutex);
+}
+
+// Task: resolve routes for PENDING callsigns via the route cache / adsb.lol.
+// Runs below the display task and throttles its HTTPS calls to be a good
+// citizen toward the free data source.
+static void route_resolver_task(void *arg)
+{
+    while (1) {
+        // Snapshot the unique PENDING callsigns currently on display.
+        char pending[MAX_FLIGHTS][MAX_CALLSIGN_LEN];
+        int np = 0;
+
+        xSemaphoreTake(s_flight_mutex, portMAX_DELAY);
+        for (int i = 0; i < s_flight_data.count; i++) {
+            flight_t *f = &s_flight_data.flights[i];
+            if (f->route_status != ROUTE_PENDING || f->callsign[0] == '\0') continue;
+            bool dup = false;
+            for (int k = 0; k < np; k++) {
+                if (strncmp(pending[k], f->callsign, MAX_CALLSIGN_LEN) == 0) { dup = true; break; }
+            }
+            if (!dup && np < MAX_FLIGHTS) {
+                strncpy(pending[np], f->callsign, MAX_CALLSIGN_LEN - 1);
+                pending[np][MAX_CALLSIGN_LEN - 1] = '\0';
+                np++;
+            }
+        }
+        xSemaphoreGive(s_flight_mutex);
+
+        if (np == 0) {
+            route_cache_flush();               // persist anything accumulated
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            continue;
+        }
+
+        bool any_resolved = false;
+        for (int k = 0; k < np; k++) {
+            char origin[MAX_AIRPORT_LEN] = {0};
+            char dest[MAX_AIRPORT_LEN] = {0};
+            uint8_t status = ROUTE_PENDING;
+
+            route_cache_status_t cst = route_cache_lookup(pending[k], origin, dest);
+            if (cst == ROUTE_CACHE_FOUND) {
+                status = ROUTE_RESOLVED;
+            } else if (cst == ROUTE_CACHE_NONE) {
+                status = ROUTE_NONE;
+            } else {
+                route_api_result_t r = route_api_fetch(pending[k], origin, dest);
+                if (r == ROUTE_API_FOUND) {
+                    route_cache_put(pending[k], origin, dest, true);
+                    status = ROUTE_RESOLVED;
+                } else if (r == ROUTE_API_NOT_FOUND) {
+                    route_cache_put(pending[k], NULL, NULL, false);
+                    status = ROUTE_NONE;
+                } else {
+                    status = ROUTE_PENDING;   // network error - retry next pass
+                }
+                vTaskDelay(pdMS_TO_TICKS(1000));  // throttle network lookups only
+            }
+
+            if (status != ROUTE_PENDING) {
+                apply_route_to_live(pending[k], status, origin, dest);
+                any_resolved = true;
+            }
+        }
+
+        if (any_resolved) route_cache_flush();
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
 // Task: poll OpenSky API periodically
 static void flight_poll_task(void *arg)
 {
@@ -100,6 +209,11 @@ static void flight_poll_task(void *arg)
         esp_err_t err = flight_api_fetch(config->lamin, config->lomin,
                                          config->lamax, config->lomax, &new_data);
         if (err == ESP_OK) {
+            // Fill routes from the cache (instant); misses become PENDING and
+            // are resolved over HTTPS by route_resolver_task.
+            for (int i = 0; i < new_data.count; i++) {
+                fill_route_from_cache(&new_data.flights[i]);
+            }
             xSemaphoreTake(s_flight_mutex, portMAX_DELAY);
             memcpy(&s_flight_data, &new_data, sizeof(flight_data_t));
             xSemaphoreGive(s_flight_mutex);
@@ -158,6 +272,7 @@ void app_main(void)
 
     // Step 2: NVS, config, button
     config_storage_init();
+    route_cache_init();   // load persisted callsign->route cache from NVS
     button_init();
 
     // Check if button is held on boot for reconfiguration
@@ -201,7 +316,7 @@ void app_main(void)
     // Load colour theme from NVS
     color_theme_t theme;
     config_storage_get_color_theme(&theme);
-    display_set_color_theme(theme.callsign, theme.country, theme.speed, theme.counter);
+    display_set_color_theme(theme.route, theme.callsign, theme.speed, theme.counter);
 
     char ip_str[16] = "";
     if (wifi_ok) {
@@ -282,4 +397,5 @@ void app_main(void)
 
     xTaskCreate(flight_poll_task, "flight_poll", 8192, &config, 5, NULL);
     xTaskCreate(display_task, "display", 8192, NULL, 4, NULL);
+    xTaskCreate(route_resolver_task, "route_resolver", 8192, NULL, 3, NULL);
 }

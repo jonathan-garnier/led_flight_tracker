@@ -11,6 +11,7 @@
 #include <time.h>
 #include <Fonts/TomThumb.h>
 #include <Fonts/FreeSansBold9pt7b.h>
+#include "fonts/RouteBold.h"
 
 static const char *TAG = "display";
 
@@ -21,8 +22,8 @@ static const char *TAG = "display";
 static MatrixPanel_I2S_DMA *dma_display = nullptr;
 
 // Theme colours (stored as color565, updated via display_set_color_theme)
-static uint16_t s_clr_callsign = 0xFFFF;  // white
-static uint16_t s_clr_country  = 0x07FF;  // cyan
+static uint16_t s_clr_route    = 0xFFFF;  // white (route row)
+static uint16_t s_clr_callsign = 0x07FF;  // cyan  (callsign row)
 static uint16_t s_clr_speed    = 0xFFE0;  // yellow
 static uint16_t s_clr_counter  = 0xF81F;  // magenta (approximate)
 
@@ -142,74 +143,135 @@ static int center_text_x(MatrixPanel_I2S_DMA *display, const char *text)
     return (x < 0) ? 0 : x;
 }
 
-void display_show_flight(const flight_t *flight, int index, int total)
+// ---- Flight layout: route (big, top) / callsign (mid) / speed+counter (bottom) ----
+
+#define ROUTE_BASELINE 13   // RouteBold glyphs span y=1..12
+#define CALLSIGN_Y     16   // default-font top row (where the country used to be)
+#define ROW3_Y         24   // speed + counter (unchanged)
+
+static void draw_speed_counter(const flight_t *flight, int index, int total)
 {
-    if (!dma_display) return;
-
-    uint16_t black  = dma_display->color565(0, 0, 0);
-
-    dma_display->fillScreen(black);
-    dma_display->setFont(&TomThumb);
-    dma_display->setTextWrap(false);
-
-    // Row 1: Callsign centered, as big as it fits
-    if (flight->callsign[0] == '\0') {
-        // No callsign - show placeholder in default font size 1
-        dma_display->setFont(NULL);
-        dma_display->setTextSize(1);
-        const char *placeholder = "Unknown";
-        int ph_x = (64 - (int)strlen(placeholder) * 6) / 2;
-        dma_display->setCursor(ph_x, 4);
-        dma_display->setTextColor(dma_display->color565(180, 180, 180));
-        dma_display->print(placeholder);
-        dma_display->setFont(&TomThumb);
-    } else {
-        // Try FreeSansBold9pt, fall back to TomThumb size 2 if too wide
-        bool use_bold = true;
-        dma_display->setFont(&FreeSansBold9pt7b);
-        dma_display->setTextSize(1);
-        int16_t x1, y1;
-        uint16_t w, h;
-        dma_display->getTextBounds(flight->callsign, 0, 0, &x1, &y1, &w, &h);
-        if (w > 64) {
-            dma_display->setFont(&TomThumb);
-            dma_display->setTextSize(2);
-            use_bold = false;
-        }
-        int callsign_x = center_text_x(dma_display, flight->callsign);
-        dma_display->setCursor(callsign_x, use_bold ? 14 : 13);
-        dma_display->setTextColor(s_clr_callsign);
-        dma_display->print(flight->callsign);
-    }
-
-    // Switch to default font for remaining rows
     dma_display->setFont(NULL);
     dma_display->setTextSize(1);
 
-    // Row 2: Country centered
-    int country_x = center_text_x(dma_display, flight->origin_country);
-    dma_display->setCursor(country_x, 16);
-    dma_display->setTextColor(s_clr_country);
-    dma_display->print(flight->origin_country);
-
-    // Row 3 (y=27): Speed left, counter right
     int kmh = (int)(flight->velocity * 3.6f + 0.5f);
     char spd_str[16];
     snprintf(spd_str, sizeof(spd_str), "%dkm/h", kmh);
-    dma_display->setCursor(1, 24);
+    dma_display->setCursor(1, ROW3_Y);
     dma_display->setTextColor(s_clr_speed);
     dma_display->print(spd_str);
 
     char counter[24];
     snprintf(counter, sizeof(counter), "%d/%d", index + 1, total);
     int counter_x = 64 - (int)(strlen(counter) * 6);
-    dma_display->setCursor(counter_x, 24);
+    dma_display->setCursor(counter_x, ROW3_Y);
     dma_display->setTextColor(s_clr_counter);
     dma_display->print(counter);
+}
 
-    ESP_LOGI(TAG, "Showing flight %d/%d: %s (%s) %.0fm %dkm/h",
-             index + 1, total, flight->callsign, flight->origin_country,
-             flight->altitude, kmh);
+static void draw_callsign_row(const flight_t *flight)
+{
+    dma_display->setFont(NULL);
+    dma_display->setTextSize(1);
+
+    if (flight->callsign[0] == '\0') {
+        const char *ph = "Unknown";
+        int x = (64 - (int)strlen(ph) * 6) / 2;
+        if (x < 0) x = 0;
+        dma_display->setCursor(x, CALLSIGN_Y);
+        dma_display->setTextColor(dma_display->color565(180, 180, 180));
+        dma_display->print(ph);
+    } else {
+        // Callsign is <=8 chars -> <=48px in the default font, always fits.
+        int x = (64 - (int)strlen(flight->callsign) * 6) / 2;
+        if (x < 0) x = 0;
+        dma_display->setCursor(x, CALLSIGN_Y);
+        dma_display->setTextColor(s_clr_callsign);
+        dma_display->print(flight->callsign);
+    }
+}
+
+// Draw "ORG [triangle] DST" centered with the given font/size.
+// Returns false (drawing nothing) if it would exceed the panel width.
+static bool try_draw_route(const char *o, const char *d, const GFXfont *font, int tsize)
+{
+    // Arrow block = gap + triangle + gap. getTextBounds gives ink width, which
+    // is within ~1px of the advance width we actually draw with, so a total of
+    // <=62 here keeps the real drawn width <=64 (fits the panel).
+    const int gap = 1, aw = 6;
+    int16_t bx, by;
+    uint16_t wO, wD, h;
+    dma_display->setFont(font);
+    dma_display->setTextSize(tsize);
+    dma_display->getTextBounds(o, 0, 0, &bx, &by, &wO, &h);
+    dma_display->getTextBounds(d, 0, 0, &bx, &by, &wD, &h);
+
+    int total = (int)wO + gap + aw + gap + (int)wD;
+    if (total > 62) return false;   // leave margin; caller falls back
+
+    int x = (64 - total) / 2;
+    if (x < 0) x = 0;
+    dma_display->setTextColor(s_clr_route);
+    dma_display->setCursor(x, ROUTE_BASELINE);
+    dma_display->print(o);
+
+    int arrowX = dma_display->getCursorX() + gap;
+    int ttop = ROUTE_BASELINE - 11;   // ~y=2
+    int tbot = ROUTE_BASELINE - 2;    // ~y=11
+    int tmid = (ttop + tbot) / 2;
+    dma_display->fillTriangle(arrowX, ttop, arrowX, tbot, arrowX + aw, tmid, s_clr_route);
+
+    dma_display->setCursor(arrowX + aw + gap, ROUTE_BASELINE);
+    dma_display->print(d);
+    return true;
+}
+
+static void draw_route_row(const flight_t *flight)
+{
+    if (flight->route_status == ROUTE_RESOLVED &&
+        flight->origin[0] && flight->dest[0]) {
+        // Custom bold font, falling back to a narrower TomThumb x2 if too wide.
+        if (!try_draw_route(flight->origin, flight->dest, &RouteBold, 1)) {
+            try_draw_route(flight->origin, flight->dest, &TomThumb, 2);
+        }
+        return;
+    }
+
+    // Pending or no-route: a dim placeholder in the big row.
+    const char *txt = (flight->route_status == ROUTE_PENDING) ? "..." : "-";
+    int16_t bx, by;
+    uint16_t w, h;
+    dma_display->setFont(&RouteBold);
+    dma_display->setTextSize(1);
+    dma_display->getTextBounds(txt, 0, 0, &bx, &by, &w, &h);
+    int x = (64 - (int)w) / 2;
+    if (x < 0) x = 0;
+    dma_display->setCursor(x, ROUTE_BASELINE);
+    dma_display->setTextColor(dma_display->color565(90, 90, 90));
+    dma_display->print(txt);
+}
+
+static void render_flight(const flight_t *flight, int index, int total)
+{
+    dma_display->fillScreen(0);
+    dma_display->setTextWrap(false);
+
+    draw_route_row(flight);
+    draw_callsign_row(flight);
+    draw_speed_counter(flight, index, total);
+
+    ESP_LOGI(TAG, "Flight %d/%d: %s [%s>%s st=%d] %dkm/h",
+             index + 1, total, flight->callsign,
+             flight->origin[0] ? flight->origin : "?",
+             flight->dest[0] ? flight->dest : "?",
+             flight->route_status,
+             (int)(flight->velocity * 3.6f + 0.5f));
+}
+
+void display_show_flight(const flight_t *flight, int index, int total)
+{
+    if (!dma_display) return;
+    render_flight(flight, index, total);
 }
 
 void display_show_no_flights(void)
@@ -728,11 +790,11 @@ static uint16_t rgb_to_565(uint32_t rgb)
     return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
-void display_set_color_theme(uint32_t callsign_rgb, uint32_t country_rgb,
+void display_set_color_theme(uint32_t route_rgb, uint32_t callsign_rgb,
                              uint32_t speed_rgb, uint32_t counter_rgb)
 {
+    s_clr_route    = rgb_to_565(route_rgb);
     s_clr_callsign = rgb_to_565(callsign_rgb);
-    s_clr_country  = rgb_to_565(country_rgb);
     s_clr_speed    = rgb_to_565(speed_rgb);
     s_clr_counter  = rgb_to_565(counter_rgb);
     ESP_LOGI(TAG, "Color theme updated");
@@ -742,157 +804,8 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
 {
     if (!dma_display) return;
 
-    uint16_t black   = dma_display->color565(0, 0, 0);
-
-    dma_display->fillScreen(black);
-    dma_display->setTextWrap(false);
-
-    // --- Row 3: Speed left, counter right (static, never scrolls) ---
-    dma_display->setFont(NULL);
-    dma_display->setTextSize(1);
-
-    int kmh = (int)(flight->velocity * 3.6f + 0.5f);
-    char spd_str[16];
-    snprintf(spd_str, sizeof(spd_str), "%dkm/h", kmh);
-    dma_display->setCursor(1, 24);
-    dma_display->setTextColor(s_clr_speed);
-    dma_display->print(spd_str);
-
-    char counter[24];
-    snprintf(counter, sizeof(counter), "%d/%d", index + 1, total);
-    int counter_x = 64 - (int)(strlen(counter) * 6);
-    dma_display->setCursor(counter_x, 24);
-    dma_display->setTextColor(s_clr_counter);
-    dma_display->print(counter);
-
-    // --- Measure country width (default font, 6px per char) ---
-    const int country_y = 16;
-    int country_pw = (int)strlen(flight->origin_country) * 6; // pixel width
-    bool country_scrolls = country_pw > 64;
-    int country_scroll_range = country_scrolls ? country_pw - 64 : 0;
-
-    // --- Callsign row: FreeSansBold9pt ---
-    const int callsign_y = 14;
-    bool callsign_scrolls = false;
-    int callsign_scroll_range = 0;
-    int callsign_w_int = 0;
-
-    if (flight->callsign[0] == '\0') {
-        // No callsign - show "Unknown" in default font
-        dma_display->setFont(NULL);
-        dma_display->setTextSize(1);
-        const char *placeholder = "Unknown";
-        int ph_x = (64 - (int)strlen(placeholder) * 6) / 2;
-        dma_display->setCursor(ph_x, 4);
-        dma_display->setTextColor(dma_display->color565(180, 180, 180));
-        dma_display->print(placeholder);
-    } else {
-        // Measure callsign width with FreeSansBold9pt
-        dma_display->setFont(&FreeSansBold9pt7b);
-        dma_display->setTextSize(1);
-        int16_t bx1, by1;
-        uint16_t callsign_w, callsign_h;
-        dma_display->getTextBounds(flight->callsign, 0, 0, &bx1, &by1, &callsign_w, &callsign_h);
-        callsign_w_int = (int)callsign_w;
-        callsign_scrolls = callsign_w_int > 64;
-        callsign_scroll_range = callsign_scrolls ? callsign_w_int - 64 : 0;
-    }
-
-    bool needs_animation = callsign_scrolls || country_scrolls;
-
-    if (!needs_animation) {
-        // --- Static display: draw everything centered, sleep ---
-        if (flight->callsign[0] != '\0') {
-            dma_display->setFont(&FreeSansBold9pt7b);
-            dma_display->setTextSize(1);
-            int callsign_x = (64 - callsign_w_int) / 2;
-            dma_display->setCursor(callsign_x, callsign_y);
-            dma_display->setTextColor(s_clr_callsign);
-            dma_display->print(flight->callsign);
-        }
-
-        dma_display->setFont(NULL);
-        dma_display->setTextSize(1);
-        int country_x = (64 - country_pw) / 2;
-        dma_display->setCursor(country_x, country_y);
-        dma_display->setTextColor(s_clr_country);
-        dma_display->print(flight->origin_country);
-
-        ESP_LOGI(TAG, "Showing flight %d/%d: %s (%s) %.0fm %dkm/h",
-                 index + 1, total, flight->callsign, flight->origin_country,
-                 flight->altitude, kmh);
-
-        vTaskDelay(pdMS_TO_TICKS(duration_ms));
-    } else {
-        // --- Animated display: scroll whichever text needs it ---
-        int pause_ms = 1000;
-        int scroll_ms = duration_ms - 2 * pause_ms;
-        if (scroll_ms < 1000) scroll_ms = 1000;
-        int frame_ms = 30;
-        int total_frames = scroll_ms / frame_ms;
-
-        ESP_LOGI(TAG, "Scrolling flight %d/%d: %s (%s) cs_scroll=%d co_scroll=%d",
-                 index + 1, total, flight->callsign, flight->origin_country,
-                 callsign_scroll_range, country_scroll_range);
-
-        // Draw initial positions
-        int cs_prev_x = callsign_scrolls ? 0 : (64 - callsign_w_int) / 2;
-        int co_prev_x = country_scrolls ? 0 : (64 - country_pw) / 2;
-
-        if (flight->callsign[0] != '\0') {
-            dma_display->setFont(&FreeSansBold9pt7b);
-            dma_display->setTextSize(1);
-            dma_display->setTextColor(s_clr_callsign);
-            dma_display->setCursor(cs_prev_x, callsign_y);
-            dma_display->print(flight->callsign);
-        }
-
-        dma_display->setFont(NULL);
-        dma_display->setTextSize(1);
-        dma_display->setTextColor(s_clr_country);
-        dma_display->setCursor(co_prev_x, country_y);
-        dma_display->print(flight->origin_country);
-
-        vTaskDelay(pdMS_TO_TICKS(pause_ms));
-
-        // Animate scroll
-        for (int frame = 1; frame <= total_frames; frame++) {
-            // Callsign
-            if (callsign_scrolls && flight->callsign[0] != '\0') {
-                int cs_x = -(callsign_scroll_range * frame / total_frames);
-                if (cs_x != cs_prev_x) {
-                    dma_display->setFont(&FreeSansBold9pt7b);
-                    dma_display->setTextSize(1);
-                    dma_display->setTextColor(black);
-                    dma_display->setCursor(cs_prev_x, callsign_y);
-                    dma_display->print(flight->callsign);
-                    dma_display->setTextColor(s_clr_callsign);
-                    dma_display->setCursor(cs_x, callsign_y);
-                    dma_display->print(flight->callsign);
-                    cs_prev_x = cs_x;
-                }
-            }
-
-            // Country
-            if (country_scrolls) {
-                int co_x = -(country_scroll_range * frame / total_frames);
-                if (co_x != co_prev_x) {
-                    dma_display->setFont(NULL);
-                    dma_display->setTextSize(1);
-                    dma_display->setTextColor(black);
-                    dma_display->setCursor(co_prev_x, country_y);
-                    dma_display->print(flight->origin_country);
-                    dma_display->setTextColor(s_clr_country);
-                    dma_display->setCursor(co_x, country_y);
-                    dma_display->print(flight->origin_country);
-                    co_prev_x = co_x;
-                }
-            }
-
-            vTaskDelay(pdMS_TO_TICKS(frame_ms));
-        }
-
-        // Pause at end
-        vTaskDelay(pdMS_TO_TICKS(pause_ms));
-    }
+    // Nothing scrolls in the new layout (route fits by design, callsign <=8
+    // chars fits), so this is a static render that holds for duration_ms.
+    render_flight(flight, index, total);
+    vTaskDelay(pdMS_TO_TICKS(duration_ms));
 }

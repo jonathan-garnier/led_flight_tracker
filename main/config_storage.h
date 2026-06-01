@@ -35,8 +35,8 @@ esp_err_t config_storage_get_brightness(uint8_t *brightness);
 
 // Colour theme: packed RGB values (0xRRGGBB)
 typedef struct {
-    uint32_t callsign;   // default 0xFFFFFF (white)
-    uint32_t country;    // default 0x00FFFF (cyan)
+    uint32_t route;      // default 0xFFFFFF (white) - route row
+    uint32_t callsign;   // default 0x00FFFF (cyan)  - callsign row
     uint32_t speed;      // default 0xFFFF00 (yellow)
     uint32_t counter;    // default 0xFF00C8 (magenta)
 } color_theme_t;

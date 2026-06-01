@@ -115,8 +115,8 @@ esp_err_t config_storage_set_color_theme(const color_theme_t *theme)
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &handle);
     if (ret != ESP_OK) return ret;
 
-    nvs_set_u32(handle, "clr_call", theme->callsign);
-    nvs_set_u32(handle, "clr_ctry", theme->country);
+    nvs_set_u32(handle, "clr_route", theme->route);
+    nvs_set_u32(handle, "clr_csgn", theme->callsign);
     nvs_set_u32(handle, "clr_spd", theme->speed);
     nvs_set_u32(handle, "clr_ctr", theme->counter);
     ret = nvs_commit(handle);
@@ -128,8 +128,8 @@ esp_err_t config_storage_set_color_theme(const color_theme_t *theme)
 esp_err_t config_storage_get_color_theme(color_theme_t *theme)
 {
     // Set defaults first
-    theme->callsign = 0xFFFFFF;
-    theme->country  = 0x00FFFF;
+    theme->route    = 0xFFFFFF;
+    theme->callsign = 0x00FFFF;
     theme->speed    = 0xFFFF00;
     theme->counter  = 0xFF00C8;
 
@@ -137,8 +137,8 @@ esp_err_t config_storage_get_color_theme(color_theme_t *theme)
     esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &handle);
     if (ret != ESP_OK) return ESP_OK;  // defaults are fine
 
-    nvs_get_u32(handle, "clr_call", &theme->callsign);
-    nvs_get_u32(handle, "clr_ctry", &theme->country);
+    nvs_get_u32(handle, "clr_route", &theme->route);
+    nvs_get_u32(handle, "clr_csgn", &theme->callsign);
     nvs_get_u32(handle, "clr_spd", &theme->speed);
     nvs_get_u32(handle, "clr_ctr", &theme->counter);
     nvs_close(handle);

@@ -44,7 +44,7 @@ void display_show_config_mode(void);
 void display_set_brightness(uint8_t brightness);
 
 // Set colour theme (packed RGB values, e.g. 0xFF00C8)
-void display_set_color_theme(uint32_t callsign_rgb, uint32_t country_rgb,
+void display_set_color_theme(uint32_t route_rgb, uint32_t callsign_rgb,
                              uint32_t speed_rgb, uint32_t counter_rgb);
 
 #ifdef __cplusplus
