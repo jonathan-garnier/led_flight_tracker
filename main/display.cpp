@@ -27,6 +27,10 @@ static uint16_t s_clr_callsign = 0x07FF;  // cyan  (callsign row)
 static uint16_t s_clr_speed    = 0xFFE0;  // yellow
 static uint16_t s_clr_counter  = 0xF81F;  // magenta (approximate)
 
+// Fixed helicopter colours (shown instead of the route row for rotorcraft).
+#define HELI_BODY_565  0xCE59   // light grey  (~200,200,200)
+#define HELI_ROTOR_565 0x7E5F   // bright cyan-white (~120,200,255)
+
 void display_arduino_init(void)
 {
     // Initialize Arduino HAL - MUST run before nvs_flash_init()
@@ -251,12 +255,79 @@ static void draw_route_row(const flight_t *flight)
     dma_display->print(txt);
 }
 
+// ---- Helicopter sprite (shown instead of the route row for rotorcraft) ----
+//
+// Small left-facing helicopter living entirely in the top route band (y<=14,
+// above CALLSIGN_Y). The rotor animates over a few "blade phases" to read as a
+// spinning 2-blade rotor at 64x32 scale.
+
+#define HELI_HUB_X     28          // rotor hub / mast x (sprite centred ~x=32)
+#define HELI_HUB_Y     2           // rotor bar y
+#define HELI_ROTOR_H   6           // rows cleared/redrawn each animation frame (y=0..5)
+
+static void draw_heli_body(void)
+{
+    uint16_t body = HELI_BODY_565;
+
+    // Cabin (rounded), tail boom, vertical fin + tail-rotor nub.
+    dma_display->fillRoundRect(21, 6, 14, 7, 3, body);  // cabin, nose to the left
+    dma_display->fillRect(35, 8, 12, 2, body);          // tail boom
+    dma_display->fillRect(46, 5, 2, 5, body);           // tail fin
+    dma_display->drawFastHLine(45, 4, 3, body);         // tail rotor nub
+
+    // Landing skids: a rail beneath the cabin with two struts.
+    dma_display->drawFastHLine(20, 13, 15, body);       // skid rail
+    dma_display->drawFastVLine(23, 11, 2, body);        // front strut
+    dma_display->drawFastVLine(31, 11, 2, body);        // rear strut
+}
+
+// Clears the top rotor strip and redraws the mast + rotor at the given phase.
+// Cycling phase 0..3 fakes a spinning 2-blade rotor.
+static void draw_heli_rotor(int phase)
+{
+    uint16_t body  = HELI_BODY_565;
+    uint16_t rotor = HELI_ROTOR_565;
+    int hx = HELI_HUB_X, hy = HELI_HUB_Y;
+
+    // Erase just the strip above the cabin (cabin starts at y=6).
+    dma_display->fillRect(0, 0, 64, HELI_ROTOR_H, 0);
+
+    // Mast connecting hub down to the cabin roof.
+    dma_display->drawFastVLine(hx, hy + 1, 4, body);    // y=3..6
+
+    switch (phase & 3) {
+    case 0:  // blades sideways: long flat bar
+        dma_display->drawLine(hx - 11, hy, hx + 11, hy, rotor);
+        break;
+    case 1:  // rotating: medium bar tilted down-to-up
+        dma_display->drawLine(hx - 7, hy + 1, hx + 7, hy - 1, rotor);
+        break;
+    case 2:  // nearly edge-on: short bar
+        dma_display->drawLine(hx - 3, hy, hx + 3, hy, rotor);
+        break;
+    default: // rotating: medium bar tilted up-to-down
+        dma_display->drawLine(hx - 7, hy - 1, hx + 7, hy + 1, rotor);
+        break;
+    }
+    dma_display->drawPixel(hx, hy, rotor);              // hub
+}
+
+static inline bool flight_is_helicopter(const flight_t *flight)
+{
+    return flight->category == FLIGHT_CATEGORY_ROTORCRAFT;
+}
+
 static void render_flight(const flight_t *flight, int index, int total)
 {
     dma_display->fillScreen(0);
     dma_display->setTextWrap(false);
 
-    draw_route_row(flight);
+    if (flight_is_helicopter(flight)) {
+        draw_heli_body();
+        draw_heli_rotor(0);   // static phase-0 rotor; animation cycles it
+    } else {
+        draw_route_row(flight);
+    }
     draw_callsign_row(flight);
     draw_speed_counter(flight, index, total);
 
@@ -804,8 +875,24 @@ void display_animate_flight(const flight_t *flight, int index, int total, int du
 {
     if (!dma_display) return;
 
-    // Nothing scrolls in the new layout (route fits by design, callsign <=8
-    // chars fits), so this is a static render that holds for duration_ms.
+    // Helicopters get an animated spinning rotor; everything else is static
+    // (route fits by design, callsign <=8 chars fits, so nothing scrolls).
+    if (flight_is_helicopter(flight)) {
+        render_flight(flight, index, total);   // draws body + text once
+
+        const int frame_ms = 110;              // ~9 fps -> ~2 rotor revs/sec
+        int elapsed = 0;
+        int phase = 0;
+        while (elapsed < duration_ms) {
+            draw_heli_rotor(phase++);
+            int remaining = duration_ms - elapsed;
+            int wait = remaining < frame_ms ? remaining : frame_ms;
+            vTaskDelay(pdMS_TO_TICKS(wait));
+            elapsed += wait;
+        }
+        return;
+    }
+
     render_flight(flight, index, total);
     vTaskDelay(pdMS_TO_TICKS(duration_ms));
 }

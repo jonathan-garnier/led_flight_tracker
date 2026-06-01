@@ -96,6 +96,12 @@ static void fill_route_from_cache(flight_t *f)
         f->route_status = ROUTE_UNKNOWN;
         return;
     }
+    // Helicopters show an animated rotorcraft instead of a route, so don't
+    // queue a (meaningless) route lookup for them.
+    if (f->category == FLIGHT_CATEGORY_ROTORCRAFT) {
+        f->route_status = ROUTE_UNKNOWN;
+        return;
+    }
     switch (route_cache_lookup(f->callsign, f->origin, f->dest)) {
     case ROUTE_CACHE_FOUND: f->route_status = ROUTE_RESOLVED; break;
     case ROUTE_CACHE_NONE:  f->route_status = ROUTE_NONE;     break;

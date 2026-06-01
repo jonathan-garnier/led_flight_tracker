@@ -291,6 +291,13 @@ static void parse_state_array(cJSON *state, flight_t *flight)
 
     cJSON *ground_item = cJSON_GetArrayItem(state, 8);
     flight->on_ground = cJSON_IsTrue(ground_item);
+
+    // [17] category (ADS-B emitter category) - only present with &extended=1.
+    // 8 = rotorcraft (helicopter); many aircraft broadcast 0 (no info).
+    cJSON *cat_item = cJSON_GetArrayItem(state, 17);
+    if (cJSON_IsNumber(cat_item)) {
+        flight->category = (uint8_t)cat_item->valueint;
+    }
 }
 
 esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
@@ -307,7 +314,7 @@ esp_err_t flight_api_fetch(float lamin, float lomin, float lamax, float lomax,
 
     char url[256];
     snprintf(url, sizeof(url),
-             "https://opensky-network.org/api/states/all?lamin=%.4f&lomin=%.4f&lamax=%.4f&lomax=%.4f",
+             "https://opensky-network.org/api/states/all?lamin=%.4f&lomin=%.4f&lamax=%.4f&lomax=%.4f&extended=1",
              lamin, lomin, lamax, lomax);
     ESP_LOGI(TAG, "API request: %s", url);
 

@@ -9,6 +9,9 @@
 #define MAX_COUNTRY_LEN 32
 #define MAX_AIRPORT_LEN 5   // up to 4-letter ICAO code + NUL (IATA is 3)
 
+// OpenSky ADS-B emitter category (state vector index 17). 0 = no info.
+#define FLIGHT_CATEGORY_ROTORCRAFT 8   // helicopter
+
 // Route resolution state for a flight's origin/destination lookup.
 typedef enum {
     ROUTE_UNKNOWN = 0,  // no callsign / not looked up
@@ -27,6 +30,7 @@ typedef struct {
     char origin[MAX_AIRPORT_LEN];   // origin airport code (IATA preferred), "" if unknown
     char dest[MAX_AIRPORT_LEN];     // destination airport code (IATA preferred), "" if unknown
     uint8_t route_status;           // route_status_t
+    uint8_t category;               // OpenSky emitter category (0 = unknown, 8 = rotorcraft)
 } flight_t;
 
 typedef struct {
