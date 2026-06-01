@@ -146,7 +146,7 @@ static int center_text_x(MatrixPanel_I2S_DMA *display, const char *text)
 // ---- Flight layout: route (big, top) / callsign (mid) / speed+counter (bottom) ----
 
 #define ROUTE_BASELINE 13   // RouteBold glyphs span y=1..12
-#define CALLSIGN_Y     16   // default-font top row (where the country used to be)
+#define CALLSIGN_Y     15   // default-font top row (where the country used to be)
 #define ROW3_Y         24   // speed + counter (unchanged)
 
 static void draw_speed_counter(const flight_t *flight, int index, int total)
